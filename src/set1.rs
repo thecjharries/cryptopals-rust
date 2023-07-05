@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod set1;
-
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
