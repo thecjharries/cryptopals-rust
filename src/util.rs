@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use base64::{engine::general_purpose, Engine as _};
+
 pub fn hex_to_bytes(hex: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
     let mut hex_iter = hex.chars();
@@ -20,6 +22,11 @@ pub fn hex_to_bytes(hex: &str) -> Vec<u8> {
         bytes.push(byte);
     }
     bytes
+}
+
+pub fn hex_to_base64(hex: &str) -> String {
+    let bytes = hex_to_bytes(hex);
+    general_purpose::STANDARD.encode(&bytes)
 }
 
 #[cfg(not(tarpaulin_include))]
@@ -41,5 +48,18 @@ mod tests {
     #[should_panic]
     fn invalid_hex_should_panic() {
         hex_to_bytes("0102G3");
+    }
+
+    #[test]
+    fn hex_to_base64_works() {
+        assert_eq!(
+            "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBs\
+             aWtlIGEgcG9pc29ub3VzIG11c2hyb29t",
+            hex_to_base64(
+                "49276d206b696c6c696e6720796f7572\
+                 20627261696e206c696b65206120706f\
+                 69736f6e6f7573206d757368726f6f6d"
+            )
+        );
     }
 }
