@@ -4,6 +4,9 @@ GH ?= gh
 GIT ?= git
 RM ?= rm
 
+# Get the current branch
+CURRENT_BRANCH := $(shell $(GIT) rev-parse --abbrev-ref HEAD)
+
 # Run the tests
 .PHONY: test
 test:
@@ -22,6 +25,7 @@ coverage-report:
 # Convenience target to finish the feature branch
 .PHONY: finish
 finish: coverage clean
+	$(GIT) push -u origin $(CURRENT_BRANCH)
 	$(GH) pr create --fill
 	$(GH) pr merge --merge --delete-branch
 
