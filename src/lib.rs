@@ -13,6 +13,7 @@
 // limitations under the License.
 
 pub mod set1;
+pub mod util;
 
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
