@@ -29,6 +29,14 @@ pub fn hex_to_base64(hex: &str) -> String {
     general_purpose::STANDARD.encode(&bytes)
 }
 
+pub fn fixed_xor(first: Vec<u8>, second: Vec<u8>) -> Vec<u8> {
+    first
+        .iter()
+        .zip(second.iter())
+        .map(|(first_byte, second_byte)| first_byte ^ second_byte)
+        .collect()
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
