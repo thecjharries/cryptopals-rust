@@ -16,7 +16,7 @@
 #[cfg(test)]
 mod tests {
     // use super::*;
-    use crate::util::hex_to_base64;
+    use crate::util::{fixed_xor, hex_to_base64};
 
     #[test]
     fn challenge1() {
@@ -30,5 +30,4 @@ mod tests {
             )
         );
     }
-
 }

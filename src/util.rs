@@ -13,19 +13,10 @@
 // limitations under the License.
 
 use base64::{engine::general_purpose, Engine as _};
-
-pub fn hex_to_bytes(hex: &str) -> Vec<u8> {
-    let mut bytes = Vec::new();
-    let mut hex_iter = hex.chars();
-    while let (Some(first), Some(second)) = (hex_iter.next(), hex_iter.next()) {
-        let byte = u8::from_str_radix(&format!("{}{}", first, second), 16).unwrap();
-        bytes.push(byte);
-    }
-    bytes
-}
+use hex;
 
 pub fn hex_to_base64(hex: &str) -> String {
-    let bytes = hex_to_bytes(hex);
+    let bytes = hex::decode(hex).unwrap();
     general_purpose::STANDARD.encode(&bytes)
 }
 
@@ -46,22 +37,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn hex_converts_properly() {
-        assert_eq!(vec![0x01, 0x02, 0x03], hex_to_bytes("010203"));
-    }
-
-    #[test]
-    fn odd_length_hex_should_drop_final_character() {
-        assert_eq!(vec![0x01, 0x02, 0x03], hex_to_bytes("010203"));
-    }
-
-    #[test]
-    #[should_panic]
-    fn invalid_hex_should_panic() {
-        hex_to_bytes("0102G3");
-    }
-
-    #[test]
     fn hex_to_base64_works() {
         assert_eq!(
             "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBs\
@@ -77,18 +52,21 @@ mod tests {
     #[test]
     fn fixed_xor_should_xor_same_length_vecs() {
         let result = fixed_xor(
-            hex_to_bytes("1c0111001f010100061a024b53535009181c"),
-            hex_to_bytes("686974207468652062756c6c277320657965"),
+            hex::decode("1c0111001f010100061a024b53535009181c").unwrap(),
+            hex::decode("686974207468652062756c6c277320657965").unwrap(),
         );
-        assert_eq!(hex_to_bytes("746865206b696420646f6e277420706c6179"), result);
+        assert_eq!(
+            hex::decode("746865206b696420646f6e277420706c6179").unwrap(),
+            result
+        );
     }
 
     #[test]
     #[should_panic]
     fn fixed_xor_should_panic_on_different_length_vecs() {
         fixed_xor(
-            hex_to_bytes("1c0111001f010100061a024b53535009181"),
-            hex_to_bytes("686974207468652062756c6c2773206579651"),
+            hex::decode("1c0111001f010100061a024b53535009181").unwrap(),
+            hex::decode("686974207468652062756c6c2773206579651").unwrap(),
         );
     }
 }
