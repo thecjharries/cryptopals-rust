@@ -84,6 +84,6 @@ mod tests {
     #[test]
     #[should_panic]
     fn fixed_xor_should_panic_with_bad_hex() {
-        fixed_xor(hex::decode("1").unwrap(), hex::decode("12").unwrap());
+        fixed_xor(vec![0x00], vec![0x00, 0x00]);
     }
 }
