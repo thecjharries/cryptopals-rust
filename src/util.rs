@@ -30,6 +30,9 @@ pub fn hex_to_base64(hex: &str) -> String {
 }
 
 pub fn fixed_xor(first: Vec<u8>, second: Vec<u8>) -> Vec<u8> {
+    if first.len() != second.len() {
+        panic!("Cannot xor vectors of different lengths");
+    }
     first
         .iter()
         .zip(second.iter())
@@ -78,5 +81,14 @@ mod tests {
             hex_to_bytes("686974207468652062756c6c277320657965"),
         );
         assert_eq!(hex_to_bytes("746865206b696420646f6e277420706c6179"), result);
+    }
+
+    #[test]
+    #[should_panic]
+    fn fixed_xor_should_panic_on_different_length_vecs() {
+        fixed_xor(
+            hex_to_bytes("1c0111001f010100061a024b53535009181"),
+            hex_to_bytes("686974207468652062756c6c2773206579651"),
+        );
     }
 }
