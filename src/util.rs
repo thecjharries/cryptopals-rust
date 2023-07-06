@@ -13,20 +13,22 @@
 // limitations under the License.
 
 use base64::{engine::general_purpose, Engine as _};
-
-pub fn hex_to_bytes(hex: &str) -> Vec<u8> {
-    let mut bytes = Vec::new();
-    let mut hex_iter = hex.chars();
-    while let (Some(first), Some(second)) = (hex_iter.next(), hex_iter.next()) {
-        let byte = u8::from_str_radix(&format!("{}{}", first, second), 16).unwrap();
-        bytes.push(byte);
-    }
-    bytes
-}
+use hex;
 
 pub fn hex_to_base64(hex: &str) -> String {
-    let bytes = hex_to_bytes(hex);
+    let bytes = hex::decode(hex).unwrap();
     general_purpose::STANDARD.encode(&bytes)
+}
+
+pub fn fixed_xor(first: Vec<u8>, second: Vec<u8>) -> Vec<u8> {
+    if first.len() != second.len() {
+        panic!("Cannot xor vectors of different lengths");
+    }
+    first
+        .iter()
+        .zip(second.iter())
+        .map(|(first_byte, second_byte)| first_byte ^ second_byte)
+        .collect()
 }
 
 #[cfg(not(tarpaulin_include))]
@@ -35,19 +37,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn hex_converts_properly() {
-        assert_eq!(vec![0x01, 0x02, 0x03], hex_to_bytes("010203"));
-    }
-
-    #[test]
-    fn odd_length_hex_should_drop_final_character() {
-        assert_eq!(vec![0x01, 0x02, 0x03], hex_to_bytes("010203"));
+    fn hex_to_base64_works_with_empty_string() {
+        assert_eq!("", hex_to_base64(""));
     }
 
     #[test]
     #[should_panic]
-    fn invalid_hex_should_panic() {
-        hex_to_bytes("0102G3");
+    fn hex_to_base64_panics_with_odd_length_string() {
+        hex_to_base64("1");
     }
 
     #[test]
@@ -61,5 +58,32 @@ mod tests {
                  69736f6e6f7573206d757368726f6f6d"
             )
         );
+    }
+
+    #[test]
+    fn fixed_xor_should_xor_same_length_vecs() {
+        let result = fixed_xor(
+            hex::decode("1c0111001f010100061a024b53535009181c").unwrap(),
+            hex::decode("686974207468652062756c6c277320657965").unwrap(),
+        );
+        assert_eq!(
+            hex::decode("746865206b696420646f6e277420706c6179").unwrap(),
+            result
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn fixed_xor_should_panic_on_different_length_vecs() {
+        fixed_xor(
+            hex::decode("1c0111001f010100061a024b53535009181").unwrap(),
+            hex::decode("686974207468652062756c6c2773206579651").unwrap(),
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn fixed_xor_should_panic_with_bad_hex() {
+        fixed_xor(vec![0x00], vec![0x00, 0x00]);
     }
 }
