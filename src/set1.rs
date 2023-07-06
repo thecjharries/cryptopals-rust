@@ -17,6 +17,7 @@
 mod tests {
     // use super::*;
     use crate::util::{fixed_xor, hex_to_base64};
+    use hex;
 
     #[test]
     fn challenge1() {
@@ -28,6 +29,18 @@ mod tests {
                  20627261696e206c696b65206120706f\
                  69736f6e6f7573206d757368726f6f6d"
             )
+        );
+    }
+
+    #[test]
+    fn challenge2() {
+        let result = fixed_xor(
+            hex::decode("1c0111001f010100061a024b53535009181c").unwrap(),
+            hex::decode("686974207468652062756c6c277320657965").unwrap(),
+        );
+        assert_eq!(
+            hex::decode("746865206b696420646f6e277420706c6179").unwrap(),
+            result
         );
     }
 }
