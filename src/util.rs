@@ -37,6 +37,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn hex_to_base64_works_with_empty_string() {
+        assert_eq!("", hex_to_base64(""));
+    }
+
+    #[test]
+    #[should_panic]
+    fn hex_to_base64_panics_with_odd_length_string() {
+        hex_to_base64("1");
+    }
+
+    #[test]
     fn hex_to_base64_works() {
         assert_eq!(
             "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBs\
@@ -68,5 +79,11 @@ mod tests {
             hex::decode("1c0111001f010100061a024b53535009181").unwrap(),
             hex::decode("686974207468652062756c6c2773206579651").unwrap(),
         );
+    }
+
+    #[test]
+    #[should_panic]
+    fn fixed_xor_should_panic_with_bad_hex() {
+        fixed_xor(hex::decode("1").unwrap(), hex::decode("12").unwrap());
     }
 }
