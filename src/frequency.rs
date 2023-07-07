@@ -16,7 +16,7 @@ use lazy_static::lazy_static;
 use std::collections::BTreeMap;
 
 lazy_static! {
-    static ref LETTER_FREQUENCY_MAP: BTreeMap<u8, f32> = BTreeMap::from_iter(vec![
+    pub static ref LETTER_FREQUENCY_MAP: BTreeMap<u8, f32> = BTreeMap::from_iter(vec![
         // https://www3.nd.edu/~busiforc/handouts/cryptography/letterfrequencies.html
         ('e' as u8, 0.111607),
         ('a' as u8, 0.084966),
@@ -47,7 +47,7 @@ lazy_static! {
     ]);
 }
 
-fn generate_frequency_map(input: Vec<u8>) -> BTreeMap<u8, f32> {
+pub fn generate_frequency_map(input: Vec<u8>) -> BTreeMap<u8, f32> {
     let length = input.len() as f32;
     let mut output = BTreeMap::new();
     for character in input {
@@ -59,7 +59,7 @@ fn generate_frequency_map(input: Vec<u8>) -> BTreeMap<u8, f32> {
     output
 }
 
-fn compute_mean_absolute_difference(input: BTreeMap<u8, f32>) -> f32 {
+pub fn compute_mean_absolute_difference(input: BTreeMap<u8, f32>) -> f32 {
     input.iter().fold(0.0, |acc, (key, value)| {
         acc + (LETTER_FREQUENCY_MAP.get(key).unwrap_or(&0.0) - value).abs()
     }) / input.len() as f32
