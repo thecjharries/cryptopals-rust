@@ -12,12 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+fn single_byte_xor(input: Vec<u8>, key: u8) -> Vec<u8> {
+    input.iter().map(|byte| byte ^ key).collect()
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
     use crate::util::{fixed_xor, hex_to_base64};
     use hex;
+
+    #[test]
+    fn single_byte_xor_works() {
+        assert_eq!(
+            vec![0x00, 0x01, 0x02, 0x03],
+            single_byte_xor(vec![0x01, 0x00, 0x03, 0x02], 0x01)
+        );
+    }
 
     #[test]
     fn challenge1() {
