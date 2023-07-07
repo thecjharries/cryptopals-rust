@@ -15,35 +15,54 @@
 use lazy_static::lazy_static;
 use std::collections::BTreeMap;
 
-
 lazy_static! {
-    static ref LETTER_FREQUENCY_MAP: BTreeMap<char, f32> = BTreeMap::from_iter(vec![
+    static ref LETTER_FREQUENCY_MAP: BTreeMap<u8, f32> = BTreeMap::from_iter(vec![
         // https://www3.nd.edu/~busiforc/handouts/cryptography/letterfrequencies.html
-        ('e', 0.111607),
-        ('a', 0.084966),
-        ('r', 0.075809),
-        ('i', 0.075448),
-        ('o', 0.071635),
-        ('t', 0.069509),
-        ('n', 0.066544),
-        ('s', 0.057351),
-        ('l', 0.054893),
-        ('c', 0.045388),
-        ('u', 0.036308),
-        ('d', 0.033844),
-        ('p', 0.031671),
-        ('m', 0.030129),
-        ('h', 0.030034),
-        ('g', 0.024705),
-        ('b', 0.020720),
-        ('f', 0.018121),
-        ('y', 0.017779),
-        ('w', 0.012899),
-        ('k', 0.011016),
-        ('v', 0.010074),
-        ('x', 0.002902),
-        ('z', 0.002722),
-        ('j', 0.001965),
-        ('q', 0.001962),
+        ('e' as u8, 0.111607),
+        ('a' as u8, 0.084966),
+        ('r' as u8, 0.075809),
+        ('i' as u8, 0.075448),
+        ('o' as u8, 0.071635),
+        ('t' as u8, 0.069509),
+        ('n' as u8, 0.066544),
+        ('s' as u8, 0.057351),
+        ('l' as u8, 0.054893),
+        ('c' as u8, 0.045388),
+        ('u' as u8, 0.036308),
+        ('d' as u8, 0.033844),
+        ('p' as u8, 0.031671),
+        ('m' as u8, 0.030129),
+        ('h' as u8, 0.030034),
+        ('g' as u8, 0.024705),
+        ('b' as u8, 0.020720),
+        ('f' as u8, 0.018121),
+        ('y' as u8, 0.017779),
+        ('w' as u8, 0.012899),
+        ('k' as u8, 0.011016),
+        ('v' as u8, 0.010074),
+        ('x' as u8, 0.002902),
+        ('z' as u8, 0.002722),
+        ('j' as u8, 0.001965),
+        ('q' as u8, 0.001962),
     ])
+}
+
+fn compute_mean_absolute_difference(input: BTreeMap<u8, f32>) -> f32 {
+    input.iter().fold(0.0, |acc, (key, value)| {
+        acc + (LETTER_FREQUENCY_MAP.get(key).unwrap_or(&0.0) - value).abs()
+    }) / input.len() as f32
+}
+
+#[cfg(not(tarpaulin_include))]
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_const_freq_map_should_have_zero_mean_absolute_difference() {
+        assert_eq!(
+            0.0,
+            compute_mean_absolute_difference(LETTER_FREQUENCY_MAP.clone())
+        );
+    }
 }
