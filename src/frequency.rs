@@ -44,7 +44,19 @@ lazy_static! {
         ('z' as u8, 0.002722),
         ('j' as u8, 0.001965),
         ('q' as u8, 0.001962),
-    ])
+    ]);
+}
+
+fn generate_frequency_map(input: Vec<u8>) -> BTreeMap<u8, f32> {
+    let length = input.len() as f32;
+    let mut output = BTreeMap::new();
+    for character in input {
+        *output.entry(character).or_insert(0.0) += 1.0;
+    }
+    for (_, value) in output.iter_mut() {
+        *value /= length;
+    }
+    output
 }
 
 fn compute_mean_absolute_difference(input: BTreeMap<u8, f32>) -> f32 {
@@ -57,6 +69,18 @@ fn compute_mean_absolute_difference(input: BTreeMap<u8, f32>) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_frequency_map_should_be_generated_correctly() {
+        let input = "this is a test".as_bytes().to_vec();
+        let output = generate_frequency_map(input);
+        assert_eq!(&0.21428572, output.get(&('t' as u8)).unwrap_or(&0.0));
+        assert_eq!(&0.071428575, output.get(&('h' as u8)).unwrap_or(&0.0));
+        assert_eq!(&0.14285715, output.get(&('i' as u8)).unwrap_or(&0.0));
+        assert_eq!(&0.21428572, output.get(&('s' as u8)).unwrap_or(&0.0));
+        assert_eq!(&0.071428575, output.get(&('a' as u8)).unwrap_or(&0.0));
+        assert_eq!(&0.071428575, output.get(&('e' as u8)).unwrap_or(&0.0));
+    }
 
     #[test]
     fn the_const_freq_map_should_have_zero_mean_absolute_difference() {
