@@ -14,19 +14,19 @@
 
 use std::collections::BTreeMap;
 
-use crate::frequency::{self, compute_mean_absolute_difference, generate_frequency_map};
+use crate::frequency::{compute_mean_absolute_difference, generate_frequency_map};
 
-fn single_byte_xor(input: Vec<u8>, key: u8) -> Vec<u8> {
+pub fn single_byte_xor(input: Vec<u8>, key: u8) -> Vec<u8> {
     input.iter().map(|byte| byte ^ key).collect()
 }
 
-fn generate_possible_single_xor_plaintexts(input: Vec<u8>) -> BTreeMap<u8, Vec<u8>> {
+pub fn generate_possible_single_xor_plaintexts(input: Vec<u8>) -> BTreeMap<u8, Vec<u8>> {
     (0..=255)
         .map(|key| (key, single_byte_xor(input.clone(), key)))
         .collect()
 }
 
-fn find_best_single_byte_decryption(ciphertext: Vec<u8>) -> (u8, Vec<u8>) {
+pub fn find_best_single_byte_decryption(ciphertext: Vec<u8>) -> (u8, Vec<u8>) {
     generate_possible_single_xor_plaintexts(ciphertext)
         .iter()
         .map(|(key, plaintext)| {
@@ -62,21 +62,6 @@ mod tests {
     }
 
     #[test]
-    fn find_best_single_byte_decryption_works() {
-        let ciphertext = hex::decode(
-            "1b37373331363f78151b7f2b783431333d\
-                                      78397828372d363c78373e783a393b3736",
-        )
-        .unwrap();
-        let (key, plaintext) = find_best_single_byte_decryption(ciphertext);
-        assert_eq!(0x58, key);
-        assert_eq!(
-            "Cooking MC's like a pound of bacon",
-            String::from_utf8(plaintext).unwrap()
-        );
-    }
-
-    #[test]
     fn challenge1() {
         assert_eq!(
             "SSdtIGtpbGxpbmcgeW91ciBicmFpbiBs\
@@ -98,6 +83,21 @@ mod tests {
         assert_eq!(
             hex::decode("746865206b696420646f6e277420706c6179").unwrap(),
             result
+        );
+    }
+
+    #[test]
+    fn challenge3() {
+        let ciphertext = hex::decode(
+            "1b37373331363f78151b7f2b783431333d\
+                                      78397828372d363c78373e783a393b3736",
+        )
+        .unwrap();
+        let (key, plaintext) = find_best_single_byte_decryption(ciphertext);
+        assert_eq!(0x58, key);
+        assert_eq!(
+            "Cooking MC's like a pound of bacon",
+            String::from_utf8(plaintext).unwrap()
         );
     }
 }
