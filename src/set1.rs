@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::BTreeMap;
+
 fn single_byte_xor(input: Vec<u8>, key: u8) -> Vec<u8> {
     input.iter().map(|byte| byte ^ key).collect()
 }
 
-fn generate_possible_single_xor_plaintexts(input: Vec<u8>) -> Vec<Vec<u8>> {
-    (u8::MIN..=u8::MAX)
-        .map(|key| single_byte_xor(input.clone(), key))
+fn generate_possible_single_xor_plaintexts(input: Vec<u8>) -> BTreeMap<u8, Vec<u8>> {
+    (0..=255)
+        .map(|key| (key, single_byte_xor(input.clone(), key)))
         .collect()
 }
 
