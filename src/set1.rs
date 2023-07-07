@@ -16,6 +16,12 @@ fn single_byte_xor(input: Vec<u8>, key: u8) -> Vec<u8> {
     input.iter().map(|byte| byte ^ key).collect()
 }
 
+fn generate_possible_single_xor_plaintexts(input: Vec<u8>) -> Vec<Vec<u8>> {
+    (u8::MIN..=u8::MAX)
+        .map(|key| single_byte_xor(input.clone(), key))
+        .collect()
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
@@ -29,6 +35,13 @@ mod tests {
             vec![0x00, 0x01, 0x02, 0x03],
             single_byte_xor(vec![0x01, 0x00, 0x03, 0x02], 0x01)
         );
+    }
+
+    #[test]
+    fn generate_possible_single_xor_plaintexts_works() {
+        let possible_plaintexts =
+            generate_possible_single_xor_plaintexts(vec![0x01, 0x00, 0x03, 0x02]);
+        assert_eq!(256, possible_plaintexts.len());
     }
 
     #[test]
