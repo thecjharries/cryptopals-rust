@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, result};
 
 use crate::frequency::{compute_mean_absolute_difference, generate_frequency_map};
 
@@ -41,19 +41,36 @@ pub fn find_best_single_byte_decryption(ciphertext: Vec<u8>) -> (u8, Vec<u8>) {
 
 pub fn brute_force_find_single_byte_xor(input: String) -> (u8, Vec<u8>) {
     let lines = input.lines().collect::<Vec<&str>>();
-    let mut best_line_decryption = Vec::new();
+    let mut best_mean_absolute_difference = f32::MAX;
+    let mut best_key = 0;
+    let mut best_plaintext = Vec::new();
     for (index, line) in lines.iter().enumerate() {
-        let (_, plaintext) = find_best_single_byte_decryption(hex::decode(line).unwrap());
-        best_line_decryption.push((index, plaintext.clone()));
+        let ciphertext = hex::decode(line).unwrap();
+        let (_, plaintext) = find_best_single_byte_decryption(ciphertext);
+        match String::from_utf8(plaintext.clone()) {
+            Ok(string) => {
+                println!("{}: {}", index, string);
+            }
+            Err(_) => continue,
+        }
+        let frequency_map = generate_frequency_map(plaintext.clone());
+        let mean_absolute_difference = compute_mean_absolute_difference(frequency_map);
+        if 0.0 < mean_absolute_difference
+            && mean_absolute_difference < best_mean_absolute_difference
+        {
+            best_mean_absolute_difference = mean_absolute_difference;
+            best_key = index;
+            best_plaintext = plaintext;
+        }
     }
-    find_best_single_byte_decryption(best_line_decryption)
+    (best_key as u8, best_plaintext)
 }
 
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util::{fixed_xor, hex_to_base64};
+    use crate::util::{fixed_xor, get_challenge_data, hex_to_base64};
     use hex;
 
     #[test]
@@ -107,6 +124,17 @@ mod tests {
         assert_eq!(0x58, key);
         assert_eq!(
             "Cooking MC's like a pound of bacon",
+            String::from_utf8(plaintext).unwrap()
+        );
+    }
+
+    #[test]
+    fn challenge4() {
+        let ciphertexts = get_challenge_data(4);
+        let (key, plaintext) = brute_force_find_single_byte_xor(ciphertexts.to_string());
+        // assert_eq!(0x54, key);
+        assert_eq!(
+            "Now that the party is jumping\n",
             String::from_utf8(plaintext).unwrap()
         );
     }
