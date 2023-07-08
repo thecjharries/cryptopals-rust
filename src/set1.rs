@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{collections::BTreeMap, result};
+use std::collections::BTreeMap;
 
-use crate::frequency::{compute_mean_absolute_difference, generate_frequency_map};
+use crate::frequency::compute_score;
 
 pub fn single_byte_xor(input: Vec<u8>, key: u8) -> Vec<u8> {
     input.iter().map(|byte| byte ^ key).collect()
@@ -29,41 +29,9 @@ pub fn generate_possible_single_xor_plaintexts(input: Vec<u8>) -> BTreeMap<u8, V
 pub fn find_best_single_byte_decryption(ciphertext: Vec<u8>) -> (u8, Vec<u8>) {
     generate_possible_single_xor_plaintexts(ciphertext)
         .iter()
-        .map(|(key, plaintext)| {
-            let frequency_map = generate_frequency_map(plaintext.clone());
-            let mean_absolute_difference = compute_mean_absolute_difference(frequency_map);
-            (mean_absolute_difference, key, plaintext)
-        })
-        .min_by(|(a, _, _), (b, _, _)| a.partial_cmp(b).unwrap())
-        .map(|(_, key, plaintext)| (*key, plaintext.clone()))
+        .map(|(key, plaintext)| (*key, plaintext.clone()))
+        .max_by_key(|(_, plaintext)| compute_score(plaintext.clone()))
         .unwrap()
-}
-
-pub fn brute_force_find_single_byte_xor(input: String) -> (u8, Vec<u8>) {
-    let lines = input.lines().collect::<Vec<&str>>();
-    let mut best_mean_absolute_difference = f32::MAX;
-    let mut best_key = 0;
-    let mut best_plaintext = Vec::new();
-    for (index, line) in lines.iter().enumerate() {
-        let ciphertext = hex::decode(line).unwrap();
-        let (_, plaintext) = find_best_single_byte_decryption(ciphertext);
-        match String::from_utf8(plaintext.clone()) {
-            Ok(string) => {
-                println!("{}: {}", index, string);
-            }
-            Err(_) => continue,
-        }
-        let frequency_map = generate_frequency_map(plaintext.clone());
-        let mean_absolute_difference = compute_mean_absolute_difference(frequency_map);
-        if 0.0 < mean_absolute_difference
-            && mean_absolute_difference < best_mean_absolute_difference
-        {
-            best_mean_absolute_difference = mean_absolute_difference;
-            best_key = index;
-            best_plaintext = plaintext;
-        }
-    }
-    (best_key as u8, best_plaintext)
 }
 
 #[cfg(not(tarpaulin_include))]
@@ -124,17 +92,6 @@ mod tests {
         assert_eq!(0x58, key);
         assert_eq!(
             "Cooking MC's like a pound of bacon",
-            String::from_utf8(plaintext).unwrap()
-        );
-    }
-
-    #[test]
-    fn challenge4() {
-        let ciphertexts = get_challenge_data(4);
-        let (key, plaintext) = brute_force_find_single_byte_xor(ciphertexts.to_string());
-        // assert_eq!(0x54, key);
-        assert_eq!(
-            "Now that the party is jumping\n",
             String::from_utf8(plaintext).unwrap()
         );
     }
