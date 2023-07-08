@@ -73,6 +73,25 @@ lazy_static! {
     ]);
 }
 
+pub fn get_character_weight(character: u8) -> u32 {
+    match char::from(character) {
+        'u' | 'U' => 2,
+        'l' | 'L' => 3,
+        'd' | 'D' => 4,
+        'r' | 'R' => 5,
+        'h' | 'H' => 6,
+        's' | 'S' => 7,
+        ' ' => 8,
+        'n' | 'N' => 9,
+        'i' | 'I' => 10,
+        'o' | 'O' => 11,
+        'a' | 'A' => 12,
+        't' | 'T' => 13,
+        'e' | 'E' => 14,
+        _ => 0,
+    }
+}
+
 pub fn generate_frequency_map(input: Vec<u8>) -> BTreeMap<u8, f32> {
     let length = input.len() as f32;
     let mut output = BTreeMap::new();
@@ -95,6 +114,16 @@ pub fn compute_mean_absolute_difference(input: BTreeMap<u8, f32>) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn known_characters_score_positive() {
+        assert_eq!(14, get_character_weight('e' as u8));
+    }
+
+    #[test]
+    fn unknown_characters_score_zero() {
+        assert_eq!(0, get_character_weight('!' as u8));
+    }
 
     #[test]
     fn the_frequency_map_should_be_generated_correctly() {
