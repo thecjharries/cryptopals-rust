@@ -92,6 +92,12 @@ pub fn get_character_weight(character: u8) -> u32 {
     }
 }
 
+pub fn compute_score(input: Vec<u8>) -> u32 {
+    input
+        .iter()
+        .fold(0, |acc, character| acc + get_character_weight(*character))
+}
+
 pub fn generate_frequency_map(input: Vec<u8>) -> BTreeMap<u8, f32> {
     let length = input.len() as f32;
     let mut output = BTreeMap::new();
@@ -123,6 +129,13 @@ mod tests {
     #[test]
     fn unknown_characters_score_zero() {
         assert_eq!(0, get_character_weight('!' as u8));
+    }
+
+    #[test]
+    fn the_score_should_be_computed_correctly() {
+        let input = "this is a test".as_bytes().to_vec();
+        let output = compute_score(input);
+        assert_eq!(136, output);
     }
 
     #[test]
