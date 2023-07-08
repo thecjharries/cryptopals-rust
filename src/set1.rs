@@ -14,7 +14,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::frequency::{compute_mean_absolute_difference, generate_frequency_map};
+use crate::text_score::compute_score;
 
 pub fn single_byte_xor(input: Vec<u8>, key: u8) -> Vec<u8> {
     input.iter().map(|byte| byte ^ key).collect()
@@ -29,21 +29,33 @@ pub fn generate_possible_single_xor_plaintexts(input: Vec<u8>) -> BTreeMap<u8, V
 pub fn find_best_single_byte_decryption(ciphertext: Vec<u8>) -> (u8, Vec<u8>) {
     generate_possible_single_xor_plaintexts(ciphertext)
         .iter()
-        .map(|(key, plaintext)| {
-            let frequency_map = generate_frequency_map(plaintext.clone());
-            let mean_absolute_difference = compute_mean_absolute_difference(frequency_map);
-            (mean_absolute_difference, key, plaintext)
-        })
-        .min_by(|(a, _, _), (b, _, _)| a.partial_cmp(b).unwrap())
-        .map(|(_, key, plaintext)| (*key, plaintext.clone()))
+        .map(|(key, plaintext)| (*key, plaintext.clone()))
+        .max_by_key(|(_, plaintext)| compute_score(plaintext.clone()))
         .unwrap()
+}
+
+pub fn guess_single_byte_xor_line(input: String) -> (u8, Vec<u8>) {
+    let lines = input.lines().collect::<Vec<&str>>();
+    let mut best_score = 0;
+    let mut best_key = 0;
+    let mut best_plaintext = Vec::new();
+    for (index, line) in lines.iter().enumerate() {
+        let (_, plaintext) = find_best_single_byte_decryption(hex::decode(line).unwrap());
+        let score = compute_score(plaintext.clone());
+        if score > best_score {
+            best_score = score;
+            best_key = index as u8;
+            best_plaintext = plaintext;
+        }
+    }
+    (best_key, best_plaintext)
 }
 
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util::{fixed_xor, hex_to_base64};
+    use crate::util::{fixed_xor, get_challenge_data, hex_to_base64};
     use hex;
 
     #[test]
@@ -97,6 +109,17 @@ mod tests {
         assert_eq!(0x58, key);
         assert_eq!(
             "Cooking MC's like a pound of bacon",
+            String::from_utf8(plaintext).unwrap()
+        );
+    }
+
+    #[test]
+    fn challenge4() {
+        let ciphertexts = get_challenge_data(4);
+        let (index, plaintext) = guess_single_byte_xor_line(ciphertexts);
+        assert_eq!(170, index);
+        assert_eq!(
+            "Now that the party is jumping\n",
             String::from_utf8(plaintext).unwrap()
         );
     }
