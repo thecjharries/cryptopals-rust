@@ -14,7 +14,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::frequency::compute_score;
+use crate::text_score::compute_score;
 
 pub fn single_byte_xor(input: Vec<u8>, key: u8) -> Vec<u8> {
     input.iter().map(|byte| byte ^ key).collect()
