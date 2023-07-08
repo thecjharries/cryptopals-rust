@@ -14,6 +14,7 @@
 
 use base64::{engine::general_purpose, Engine as _};
 use hex;
+use std::fs::read_to_string;
 
 pub fn hex_to_base64(hex: &str) -> String {
     let bytes = hex::decode(hex).unwrap();
@@ -29,6 +30,11 @@ pub fn fixed_xor(first: Vec<u8>, second: Vec<u8>) -> Vec<u8> {
         .zip(second.iter())
         .map(|(first_byte, second_byte)| first_byte ^ second_byte)
         .collect()
+}
+
+pub fn get_challenge_data(challenge: u8) -> String {
+    let path = format!("challenge-data/{}.txt", challenge);
+    read_to_string(path).unwrap()
 }
 
 #[cfg(not(tarpaulin_include))]
@@ -85,5 +91,12 @@ mod tests {
     #[should_panic]
     fn fixed_xor_should_panic_with_bad_hex() {
         fixed_xor(vec![0x00], vec![0x00, 0x00]);
+    }
+
+    #[test]
+    fn get_challenge_data_works() {
+        let result = get_challenge_data(4);
+        let lines = result.lines().collect::<Vec<&str>>();
+        assert_eq!(327, lines.len());
     }
 }
