@@ -34,6 +34,23 @@ pub fn find_best_single_byte_decryption(ciphertext: Vec<u8>) -> (u8, Vec<u8>) {
         .unwrap()
 }
 
+pub fn guess_single_byte_xor_line(input: String) -> (u8, Vec<u8>) {
+    let lines = input.lines().collect::<Vec<&str>>();
+    let mut best_score = 0;
+    let mut best_key = 0;
+    let mut best_plaintext = Vec::new();
+    for (index, line) in lines.iter().enumerate() {
+        let (_, plaintext) = find_best_single_byte_decryption(hex::decode(line).unwrap());
+        let score = compute_score(plaintext.clone());
+        if score > best_score {
+            best_score = score;
+            best_key = index as u8;
+            best_plaintext = plaintext;
+        }
+    }
+    (best_key, best_plaintext)
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
@@ -92,6 +109,17 @@ mod tests {
         assert_eq!(0x58, key);
         assert_eq!(
             "Cooking MC's like a pound of bacon",
+            String::from_utf8(plaintext).unwrap()
+        );
+    }
+
+    #[test]
+    fn challenge4() {
+        let ciphertexts = get_challenge_data(4);
+        let (index, plaintext) = guess_single_byte_xor_line(ciphertexts);
+        assert_eq!(170, index);
+        assert_eq!(
+            "Now that the party is jumping\n",
             String::from_utf8(plaintext).unwrap()
         );
     }
