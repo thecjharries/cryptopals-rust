@@ -39,6 +39,16 @@ pub fn find_best_single_byte_decryption(ciphertext: Vec<u8>) -> (u8, Vec<u8>) {
         .unwrap()
 }
 
+pub fn brute_force_find_single_byte_xor(input: String) -> (u8, Vec<u8>) {
+    let lines = input.lines().collect::<Vec<&str>>();
+    let mut best_line_decryption = Vec::new();
+    for (index, line) in lines.iter().enumerate() {
+        let (_, plaintext) = find_best_single_byte_decryption(hex::decode(line).unwrap());
+        best_line_decryption.push((index, plaintext.clone()));
+    }
+    find_best_single_byte_decryption(best_line_decryption)
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
