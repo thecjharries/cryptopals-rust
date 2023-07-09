@@ -32,6 +32,14 @@ pub fn fixed_xor(first: Vec<u8>, second: Vec<u8>) -> Vec<u8> {
         .collect()
 }
 
+pub fn repeating_key_xor(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+    plaintext
+        .iter()
+        .zip(key.iter().cycle())
+        .map(|(plaintext_byte, key_byte)| plaintext_byte ^ key_byte)
+        .collect()
+}
+
 pub fn get_challenge_data(challenge: u8) -> String {
     let path = format!("challenge-data/{}.txt", challenge);
     read_to_string(path).unwrap()
@@ -91,6 +99,27 @@ mod tests {
     #[should_panic]
     fn fixed_xor_should_panic_with_bad_hex() {
         fixed_xor(vec![0x00], vec![0x00, 0x00]);
+    }
+
+    #[test]
+    fn repeating_key_xor_works() {
+        let result = repeating_key_xor(
+            "Burning 'em, if you ain't quick and nimble\n\
+             I go crazy when I hear a cymbal"
+                .as_bytes()
+                .to_vec(),
+            "ICE".as_bytes().to_vec(),
+        );
+        assert_eq!(
+            hex::decode(
+                "0b3637272a2b2e63622c2e69692a23693a2a3\
+                 c6324202d623d63343c2a2622632427276527\
+                 2a282b2f20430a652e2c652a3124333a653e2\
+                 b2027630c692b20283165286326302e27282f"
+            )
+            .unwrap(),
+            result
+        );
     }
 
     #[test]

@@ -55,7 +55,7 @@ pub fn guess_single_byte_xor_line(input: String) -> (u8, Vec<u8>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util::{fixed_xor, get_challenge_data, hex_to_base64};
+    use crate::util::{fixed_xor, get_challenge_data, hex_to_base64, repeating_key_xor};
     use hex;
 
     #[test]
@@ -121,6 +121,27 @@ mod tests {
         assert_eq!(
             "Now that the party is jumping\n",
             String::from_utf8(plaintext).unwrap()
+        );
+    }
+
+    #[test]
+    fn challenge5() {
+        let result = repeating_key_xor(
+            "Burning 'em, if you ain't quick and nimble\n\
+             I go crazy when I hear a cymbal"
+                .as_bytes()
+                .to_vec(),
+            "ICE".as_bytes().to_vec(),
+        );
+        assert_eq!(
+            hex::decode(
+                "0b3637272a2b2e63622c2e69692a23693a2a3\
+                 c6324202d623d63343c2a2622632427276527\
+                 2a282b2f20430a652e2c652a3124333a653e2\
+                 b2027630c692b20283165286326302e27282f"
+            )
+            .unwrap(),
+            result
         );
     }
 }
