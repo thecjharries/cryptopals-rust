@@ -33,7 +33,11 @@ pub fn fixed_xor(first: Vec<u8>, second: Vec<u8>) -> Vec<u8> {
 }
 
 pub fn repeating_xor(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
-    todo!()
+    plaintext
+        .iter()
+        .zip(key.iter().cycle())
+        .map(|(plaintext_byte, key_byte)| plaintext_byte ^ key_byte)
+        .collect()
 }
 
 pub fn get_challenge_data(challenge: u8) -> String {
