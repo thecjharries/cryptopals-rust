@@ -32,7 +32,7 @@ pub fn fixed_xor(first: Vec<u8>, second: Vec<u8>) -> Vec<u8> {
         .collect()
 }
 
-pub fn repeating_xor(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+pub fn repeating_key_xor(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     plaintext
         .iter()
         .zip(key.iter().cycle())
@@ -102,8 +102,8 @@ mod tests {
     }
 
     #[test]
-    fn repeating_xor_works() {
-        let result = repeating_xor(
+    fn repeating_key_xor_works() {
+        let result = repeating_key_xor(
             "Burning 'em, if you ain't quick and nimble\n\
              I go crazy when I hear a cymbal"
                 .as_bytes()
