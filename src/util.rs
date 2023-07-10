@@ -46,7 +46,14 @@ pub fn get_challenge_data(challenge: u8) -> String {
 }
 
 pub fn hamming_distance(first: Vec<u8>, second: Vec<u8>) -> u32 {
-    todo!()
+    if first.len() != second.len() {
+        panic!("Cannot xor vectors of different lengths");
+    }
+    first
+        .iter()
+        .zip(second.iter())
+        .map(|(first_byte, second_byte)| (first_byte ^ second_byte).count_ones())
+        .sum()
 }
 
 #[cfg(not(tarpaulin_include))]
