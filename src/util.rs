@@ -132,4 +132,15 @@ mod tests {
         let lines = result.lines().collect::<Vec<&str>>();
         assert_eq!(327, lines.len());
     }
+
+    #[test]
+    fn hamming_distance_calculates_bit_difference() {
+        assert_eq!(
+            37,
+            hamming_distance(
+                "this is a test".as_bytes().to_vec(),
+                "wokka wokka!!!".as_bytes().to_vec()
+            )
+        );
+    }
 }
