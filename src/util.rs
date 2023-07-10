@@ -150,4 +150,10 @@ mod tests {
             )
         );
     }
+
+    #[test]
+    #[should_panic]
+    fn hamming_distance_panics_on_different_lengths() {
+        hamming_distance(vec![0x00], vec![0x00, 0x00]);
+    }
 }
