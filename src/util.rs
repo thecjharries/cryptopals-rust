@@ -45,6 +45,10 @@ pub fn get_challenge_data(challenge: u8) -> String {
     read_to_string(path).unwrap()
 }
 
+pub fn hamming_distance(first: Vec<u8>, second: Vec<u8>) -> u32 {
+    todo!()
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
