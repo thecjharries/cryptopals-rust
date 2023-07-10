@@ -56,6 +56,24 @@ pub fn hamming_distance(first: Vec<u8>, second: Vec<u8>) -> u32 {
         .sum()
 }
 
+pub fn find_best_three_keysizes(ciphertext: Vec<u8>, min: usize, max: usize) -> Vec<usize> {
+    let mut keysize_distances: Vec<(usize, f32)> = (min..=max)
+        .map(|keysize| {
+            let first = ciphertext.chunks(keysize).next().unwrap();
+            let second = ciphertext.chunks(keysize).nth(1).unwrap();
+            let distance =
+                hamming_distance(first.to_vec(), second.to_vec()) as f32 / keysize as f32;
+            (keysize, distance)
+        })
+        .collect();
+    keysize_distances.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    vec![
+        keysize_distances[0].0,
+        keysize_distances[1].0,
+        keysize_distances[2].0,
+    ]
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
@@ -155,5 +173,15 @@ mod tests {
     #[should_panic]
     fn hamming_distance_panics_on_different_lengths() {
         hamming_distance(vec![0x00], vec![0x00, 0x00]);
+    }
+
+    #[test]
+    fn test_find_best_three_keysizes() {
+        let data = get_challenge_data(6).replace("\n", "");
+        let ciphertext = general_purpose::STANDARD
+            .decode(data.as_bytes().to_vec())
+            .unwrap();
+        let result = find_best_three_keysizes(ciphertext, 2, 40);
+        assert_eq!(vec![5, 3, 2], result);
     }
 }
