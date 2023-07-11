@@ -66,7 +66,7 @@ pub fn break_vignere(ciphertext: Vec<u8>, keysize: u8) -> (Vec<u8>, Vec<u8>) {
         );
     }
     for block in blocks {
-        let (block_key, block_plaintext) = find_best_single_byte_decryption(block);
+        let (block_key, _) = find_best_single_byte_decryption(block);
         key.push(block_key);
     }
     let plaintext = repeating_key_xor(ciphertext, key.clone());
@@ -77,6 +77,7 @@ pub fn break_vignere(ciphertext: Vec<u8>, keysize: u8) -> (Vec<u8>, Vec<u8>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::aes::decrypt_aes_128_ecb;
     use crate::util::{fixed_xor, get_challenge_data, hex_to_base64, repeating_key_xor};
     use base64::{engine::general_purpose, Engine as _};
     use hex;
@@ -182,5 +183,17 @@ mod tests {
         assert!(String::from_utf8(plaintext)
             .unwrap()
             .starts_with("I'm back"));
+    }
+
+    #[test]
+    fn challenge7() {
+        let data = get_challenge_data(7).replace("\n", "");
+        let ciphertext = general_purpose::STANDARD
+            .decode(data.as_bytes().to_vec())
+            .unwrap();
+        let plaintext = decrypt_aes_128_ecb(ciphertext, "YELLOW SUBMARINE".as_bytes().to_vec());
+        assert!(String::from_utf8(plaintext)
+            .unwrap()
+            .starts_with("I'm back and I'm ringin' the bell"));
     }
 }

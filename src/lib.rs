@@ -15,6 +15,7 @@
 pub mod text_score;
 pub mod set1;
 pub mod util;
+pub mod aes;
 
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
