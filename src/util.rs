@@ -56,22 +56,27 @@ pub fn hamming_distance(first: Vec<u8>, second: Vec<u8>) -> u32 {
         .sum()
 }
 
-pub fn find_best_three_keysizes(ciphertext: Vec<u8>, min: usize, max: usize) -> Vec<usize> {
-    let mut keysize_distances: Vec<(usize, f32)> = (min..=max)
+pub fn find_best_keysizes(ciphertext: Vec<u8>, min: usize, max: usize) -> Vec<usize> {
+    let mut keysize_distances: Vec<(usize, f64)> = (min..=max)
         .map(|keysize| {
-            let first = ciphertext.chunks(keysize).next().unwrap();
-            let second = ciphertext.chunks(keysize).nth(1).unwrap();
-            let distance =
-                hamming_distance(first.to_vec(), second.to_vec()) as f32 / keysize as f32;
+            let first = &ciphertext[..keysize];
+            let second = &ciphertext[keysize..keysize * 2];
+            let third = &ciphertext[keysize * 2..keysize * 3];
+            let fourth = &ciphertext[keysize * 3..keysize * 4];
+            let distance = (hamming_distance(first.to_vec(), second.to_vec())
+                + hamming_distance(second.to_vec(), third.to_vec())
+                + hamming_distance(third.to_vec(), fourth.to_vec()))
+                as f64
+                / keysize as f64;
             (keysize, distance)
         })
         .collect();
     keysize_distances.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-    vec![
-        keysize_distances[0].0,
-        keysize_distances[1].0,
-        keysize_distances[2].0,
-    ]
+    keysize_distances
+        .iter()
+        .map(|(keysize, _)| *keysize)
+        .collect::<Vec<usize>>()[..3]
+        .to_vec()
 }
 
 #[cfg(not(tarpaulin_include))]
@@ -176,12 +181,12 @@ mod tests {
     }
 
     #[test]
-    fn test_find_best_three_keysizes() {
+    fn find_best_keysizes_gives_top_three_keysizes() {
         let data = get_challenge_data(6).replace("\n", "");
         let ciphertext = general_purpose::STANDARD
             .decode(data.as_bytes().to_vec())
             .unwrap();
-        let result = find_best_three_keysizes(ciphertext, 2, 40);
-        assert_eq!(vec![5, 3, 2], result);
+        let result = find_best_keysizes(ciphertext, 2, 40);
+        assert_eq!(vec![2, 3, 29], result);
     }
 }
