@@ -66,7 +66,7 @@ pub fn break_vignere(ciphertext: Vec<u8>, keysize: u8) -> (Vec<u8>, Vec<u8>) {
         );
     }
     for block in blocks {
-        let (block_key, block_plaintext) = find_best_single_byte_decryption(block);
+        let (block_key, _) = find_best_single_byte_decryption(block);
         key.push(block_key);
     }
     let plaintext = repeating_key_xor(ciphertext, key.clone());
