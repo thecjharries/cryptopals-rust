@@ -15,6 +15,7 @@
 use std::collections::BTreeMap;
 
 use crate::text_score::compute_score;
+use crate::util::repeating_key_xor;
 
 pub fn single_byte_xor(input: Vec<u8>, key: u8) -> Vec<u8> {
     input.iter().map(|byte| byte ^ key).collect()
@@ -51,11 +52,33 @@ pub fn guess_single_byte_xor_line(input: String) -> (u8, Vec<u8>) {
     (best_key, best_plaintext)
 }
 
+pub fn break_vignere(ciphertext: Vec<u8>, keysize: u8) -> (Vec<u8>, Vec<u8>) {
+    let mut key = Vec::new();
+    let mut blocks = Vec::new();
+    for index in 0..keysize {
+        blocks.push(
+            ciphertext
+                .iter()
+                .skip(index as usize)
+                .step_by(keysize as usize)
+                .cloned()
+                .collect::<Vec<u8>>(),
+        );
+    }
+    for block in blocks {
+        let (block_key, block_plaintext) = find_best_single_byte_decryption(block);
+        key.push(block_key);
+    }
+    let plaintext = repeating_key_xor(ciphertext, key.clone());
+    (key, plaintext)
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::util::{fixed_xor, get_challenge_data, hex_to_base64, repeating_key_xor};
+    use base64::{engine::general_purpose, Engine as _};
     use hex;
 
     #[test]
@@ -143,5 +166,21 @@ mod tests {
             .unwrap(),
             result
         );
+    }
+
+    #[test]
+    fn challenge6() {
+        let data = get_challenge_data(6).replace("\n", "");
+        let ciphertext = general_purpose::STANDARD
+            .decode(data.as_bytes().to_vec())
+            .unwrap();
+        let (key, plaintext) = break_vignere(ciphertext, 29);
+        assert_eq!(
+            "Terminator X: Bring the noise",
+            String::from_utf8(key).unwrap()
+        );
+        assert!(String::from_utf8(plaintext)
+            .unwrap()
+            .starts_with("I'm back"));
     }
 }

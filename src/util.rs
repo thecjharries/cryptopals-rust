@@ -45,6 +45,40 @@ pub fn get_challenge_data(challenge: u8) -> String {
     read_to_string(path).unwrap()
 }
 
+pub fn hamming_distance(first: Vec<u8>, second: Vec<u8>) -> u32 {
+    if first.len() != second.len() {
+        panic!("Cannot xor vectors of different lengths");
+    }
+    first
+        .iter()
+        .zip(second.iter())
+        .map(|(first_byte, second_byte)| (first_byte ^ second_byte).count_ones())
+        .sum()
+}
+
+pub fn find_best_keysizes(ciphertext: Vec<u8>, min: usize, max: usize) -> Vec<usize> {
+    let mut keysize_distances: Vec<(usize, f64)> = (min..=max)
+        .map(|keysize| {
+            let first = &ciphertext[..keysize];
+            let second = &ciphertext[keysize..keysize * 2];
+            let third = &ciphertext[keysize * 2..keysize * 3];
+            let fourth = &ciphertext[keysize * 3..keysize * 4];
+            let distance = (hamming_distance(first.to_vec(), second.to_vec())
+                + hamming_distance(second.to_vec(), third.to_vec())
+                + hamming_distance(third.to_vec(), fourth.to_vec()))
+                as f64
+                / keysize as f64;
+            (keysize, distance)
+        })
+        .collect();
+    keysize_distances.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    keysize_distances
+        .iter()
+        .map(|(keysize, _)| *keysize)
+        .collect::<Vec<usize>>()[..3]
+        .to_vec()
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
@@ -127,5 +161,32 @@ mod tests {
         let result = get_challenge_data(4);
         let lines = result.lines().collect::<Vec<&str>>();
         assert_eq!(327, lines.len());
+    }
+
+    #[test]
+    fn hamming_distance_calculates_bit_difference() {
+        assert_eq!(
+            37,
+            hamming_distance(
+                "this is a test".as_bytes().to_vec(),
+                "wokka wokka!!!".as_bytes().to_vec()
+            )
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn hamming_distance_panics_on_different_lengths() {
+        hamming_distance(vec![0x00], vec![0x00, 0x00]);
+    }
+
+    #[test]
+    fn find_best_keysizes_gives_top_three_keysizes() {
+        let data = get_challenge_data(6).replace("\n", "");
+        let ciphertext = general_purpose::STANDARD
+            .decode(data.as_bytes().to_vec())
+            .unwrap();
+        let result = find_best_keysizes(ciphertext, 2, 40);
+        assert_eq!(vec![2, 3, 29], result);
     }
 }
