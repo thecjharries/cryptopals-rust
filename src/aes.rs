@@ -12,11 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod text_score;
-pub mod set1;
-pub mod util;
-pub mod aes;
-
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
