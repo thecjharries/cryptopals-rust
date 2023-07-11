@@ -12,11 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use aes::cipher::{generic_array::GenericArray, BlockCipher, BlockDecrypt, BlockEncrypt, KeyInit};
+use aes::cipher::{generic_array::GenericArray, BlockDecrypt, KeyInit};
 use aes::Aes128;
 
 pub fn decrypt_aes_128_ecb(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
-    todo!()
+    let key = GenericArray::from_slice(&key);
+    let mut blocks = Vec::new();
+    for block in ciphertext.chunks(16) {
+        blocks.push(GenericArray::clone_from_slice(block));
+    }
+    let cipher = Aes128::new(&key);
+    cipher.decrypt_blocks(&mut blocks);
+    blocks
+        .iter()
+        .map(|block| block.to_vec())
+        .flatten()
+        .collect::<Vec<u8>>()
 }
 
 #[cfg(not(tarpaulin_include))]
