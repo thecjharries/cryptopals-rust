@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashSet;
 use aes::cipher::{generic_array::GenericArray, BlockDecrypt, KeyInit};
 use aes::Aes128;
 
@@ -31,7 +32,14 @@ pub fn decrypt_aes_128_ecb(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
 }
 
 pub fn guess_was_aes_ecb_used(ciphertext: Vec<u8>) -> bool {
-    todo!()
+    let mut blocks = HashSet::new();
+    for block in ciphertext.chunks(16) {
+        if blocks.contains(block) {
+            return true;
+        }
+        blocks.insert(block);
+    }
+    false
 }
 
 #[cfg(not(tarpaulin_include))]
