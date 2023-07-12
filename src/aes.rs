@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashSet;
 use aes::cipher::{generic_array::GenericArray, BlockDecrypt, KeyInit};
 use aes::Aes128;
 
@@ -30,6 +31,17 @@ pub fn decrypt_aes_128_ecb(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
         .collect::<Vec<u8>>()
 }
 
+pub fn guess_was_aes_ecb_used(ciphertext: Vec<u8>) -> bool {
+    let mut blocks = HashSet::new();
+    for block in ciphertext.chunks(16) {
+        if blocks.contains(block) {
+            return true;
+        }
+        blocks.insert(block);
+    }
+    false
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
@@ -45,5 +57,11 @@ mod tests {
         let cipher = Aes128::new(&key);
         cipher.encrypt_block(&mut block);
         assert_eq!(decrypted, decrypt_aes_128_ecb(block.to_vec(), key.to_vec()));
+    }
+
+    #[test]
+    fn guess_was_aes_ecb_used_should_return_true_when_duplicate_blocks() {
+        let ciphertext = b"YELLOW SUBMARINEYELLOW SUBMARINE".to_vec();
+        assert!(guess_was_aes_ecb_used(ciphertext));
     }
 }
