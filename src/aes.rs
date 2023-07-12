@@ -30,6 +30,10 @@ pub fn decrypt_aes_128_ecb(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
         .collect::<Vec<u8>>()
 }
 
+pub fn guess_was_aes_ecb_used(ciphertext: Vec<u8>) -> bool {
+    todo!()
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
