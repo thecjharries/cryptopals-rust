@@ -77,7 +77,7 @@ pub fn break_vignere(ciphertext: Vec<u8>, keysize: u8) -> (Vec<u8>, Vec<u8>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::aes::decrypt_aes_128_ecb;
+    use crate::aes::{decrypt_aes_128_ecb, guess_was_aes_ecb_used};
     use crate::util::{fixed_xor, get_challenge_data, hex_to_base64, repeating_key_xor};
     use base64::{engine::general_purpose, Engine as _};
     use hex;
@@ -195,5 +195,20 @@ mod tests {
         assert!(String::from_utf8(plaintext)
             .unwrap()
             .starts_with("I'm back and I'm ringin' the bell"));
+    }
+
+    #[test]
+    fn challenge8() {
+        let data = get_challenge_data(8);
+        let mut count = 0;
+        for line in data.split("\n") {
+            let ciphertext = general_purpose::STANDARD
+                .decode(line.as_bytes().to_vec())
+                .unwrap();
+            if guess_was_aes_ecb_used(ciphertext) {
+                count += 1;
+            }
+        }
+        assert_eq!(1, count);
     }
 }
