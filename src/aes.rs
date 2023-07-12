@@ -50,4 +50,10 @@ mod tests {
         cipher.encrypt_block(&mut block);
         assert_eq!(decrypted, decrypt_aes_128_ecb(block.to_vec(), key.to_vec()));
     }
+
+    #[test]
+    fn guess_was_aes_ecb_used_should_return_true_when_duplicate_blocks() {
+        let ciphertext = b"YELLOW SUBMARINEYELLOW SUBMARINE".to_vec();
+        assert!(guess_was_aes_ecb_used(ciphertext));
+    }
 }
