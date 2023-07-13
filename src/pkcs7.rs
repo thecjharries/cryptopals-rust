@@ -13,7 +13,12 @@
 // limitations under the License.
 
 pub fn pkcs7_padding(input: Vec<u8>, block_size: usize) -> Vec<u8> {
-    todo!()
+    let mut output = input.clone();
+    let padding = (block_size - (input.len() % block_size)) % block_size;
+    for _ in 0..padding {
+        output.push(padding as u8);
+    }
+    output
 }
 
 #[cfg(not(tarpaulin_include))]
