@@ -20,4 +20,24 @@ pub fn pkcs7_padding(input: Vec<u8>, block_size: usize) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pkcs7_padding_pads_nothing_when_multiple_of_block_size() {
+        assert_eq!(
+            "YELLOW SUBMARINE".as_bytes().to_vec(),
+            pkcs7_padding("YELLOW SUBMARINE".as_bytes().to_vec(), 16)
+        )
+    }
+
+    #[test]
+    fn pkcs7_padding_pads_number_when_not_multiple_of_blocksize() {
+        assert_eq!(
+            "YELLOW SUBMARINE\x01".as_bytes().to_vec(),
+            pkcs7_padding("YELLOW SUBMARINE".as_bytes().to_vec(), 17)
+        );
+        assert_eq!(
+            "YELLOW SUBMARINE\x02\x02".as_bytes().to_vec(),
+            pkcs7_padding("YELLOW SUBMARINE".as_bytes().to_vec(), 18)
+        );
+    }
 }
