@@ -15,5 +15,15 @@
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // use super::*;
+
+    use crate::pkcs7::pkcs7_padding;
+
+    #[test]
+    fn challenge9() {
+        assert_eq!(
+            "YELLOW SUBMARINE\x04\x04\x04\x04".as_bytes().to_vec(),
+            pkcs7_padding("YELLOW SUBMARINE".as_bytes().to_vec(), 20)
+        );
+    }
 }
