@@ -17,19 +17,19 @@ use aes::Aes128;
 use std::collections::HashSet;
 
 pub fn encrypt_aes_128_ecb_block(block: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
-    let mut blocks = vec![GenericArray::clone_from_slice(&block)];
+    let mut block = GenericArray::clone_from_slice(&block);
     let key = GenericArray::from_slice(&key);
     let cipher = Aes128::new(&key);
-    cipher.encrypt_blocks(&mut blocks);
-    blocks[0].to_vec()
+    cipher.encrypt_block(&mut block);
+    block.to_vec()
 }
 
 pub fn decrypt_aes_128_ecb_block(block: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
-    let mut blocks = vec![GenericArray::clone_from_slice(&block)];
+    let mut blocks = GenericArray::clone_from_slice(&block);
     let key = GenericArray::from_slice(&key);
     let cipher = Aes128::new(&key);
-    cipher.decrypt_blocks(&mut blocks);
-    blocks[0].to_vec()
+    cipher.decrypt_block(&mut blocks);
+    blocks.to_vec()
 }
 
 pub fn decrypt_aes_128_ecb(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
