@@ -16,6 +16,8 @@ use aes::cipher::{generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyIn
 use aes::Aes128;
 use std::collections::HashSet;
 
+use crate::pkcs7::{pkcs7_padding_add, pkcs7_padding_remove};
+
 pub fn encrypt_aes_128_ecb_block(block: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     let mut block = GenericArray::clone_from_slice(&block);
     let key = GenericArray::from_slice(&key);
@@ -48,6 +50,7 @@ pub fn decrypt_aes_128_ecb(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
 }
 
 pub fn encrypt_aes_128_cbc(plaintext: Vec<u8>, iv: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+    let plaintext = pkcs7_padding_add(plaintext, 16);
     let mut blocks = Vec::new();
     for block in plaintext.chunks(16) {
         blocks.push(GenericArray::clone_from_slice(block));
@@ -86,7 +89,7 @@ pub fn decrypt_aes_128_cbc(ciphertext: Vec<u8>, iv: Vec<u8>, key: Vec<u8>) -> Ve
         decrypted.append(&mut decrypted_block.to_vec());
         previous_block = block;
     }
-    decrypted
+    pkcs7_padding_remove(decrypted)
 }
 
 pub fn guess_was_aes_ecb_used(ciphertext: Vec<u8>) -> bool {
@@ -105,6 +108,9 @@ pub fn guess_was_aes_ecb_used(ciphertext: Vec<u8>) -> bool {
 mod tests {
     use super::*;
     use aes::cipher::{BlockEncrypt, KeyInit};
+    use base64::{engine::general_purpose, Engine as _};
+
+    use crate::util::get_challenge_data;
 
     #[test]
     fn encrypt_aes_128_ecb_block_should_properly_encrypt() {
@@ -145,29 +151,42 @@ mod tests {
 
     #[test]
     fn encrypt_aes_128_cbc_should_properly_encrypt() {
-        let key = GenericArray::from([0u8; 16]);
-        let iv = GenericArray::from([0u8; 16]);
-        let mut block = GenericArray::from([42u8; 16]);
-        let decrypted = block.clone().to_vec();
-        let cipher = Aes128::new(&key);
-        cipher.encrypt_block(&mut block);
+        let data = get_challenge_data(10).replace("\n", "");
+        let ciphertext = general_purpose::STANDARD
+            .decode(data.as_bytes().to_vec())
+            .unwrap();
+        let plaintext = b"I'm back and I'm ringin' the bell \nA rockin' on the mike while the fly girls yell \nIn ecstasy in the back of me \nWell that's my DJ Deshay cuttin' all them Z's \nHittin' hard and the girlies goin' crazy \nVanilla's on the mike, man I'm not lazy. \n\nI'm lettin' my drug kick in \nIt controls my mouth and I begin \nTo just let it flow, let my concepts go \nMy posse's to the side yellin', Go Vanilla Go! \n\nSmooth 'cause that's the way I will be \nAnd if you don't give a damn, then \nWhy you starin' at me \nSo get off 'cause I control the stage \nThere's no dissin' allowed \nI'm in my own phase \nThe girlies sa y they love me and that is ok \nAnd I can dance better than any kid n' play \n\nStage 2 -- Yea the one ya' wanna listen to \nIt's off my head so let the beat play through \nSo I can funk it up and make it sound good \n1-2-3 Yo -- Knock on some wood \nFor good luck, I like my rhymes atrocious \nSupercalafragilisticexpialidocious \nI'm an effect and that you can bet \nI can take a fly girl and make her wet. \n\nI'm like Samson -- Samson to Delilah \nThere's no denyin', You can try to hang \nBut you'll keep tryin' to get my style \nOver and over, practice makes perfect \nBut not if you're a loafer. \n\nYou'll get nowhere, no place, no time, no girls \nSoon -- Oh my God, homebody, you probably eat \nSpaghetti with a spoon! Come on and say it! \n\nVIP. Vanilla Ice yep, yep, I'm comin' hard like a rhino \nIntoxicating so you stagger like a wino \nSo punks stop trying and girl stop cryin' \nVanilla Ice is sellin' and you people are buyin' \n'Cause why the freaks are jockin' like Crazy Glue \nMovin' and groovin' trying to sing along \nAll through the ghetto groovin' this here song \nNow you're amazed by the VIP posse. \n\nSteppin' so hard like a German Nazi \nStartled by the bases hittin' ground \nThere's no trippin' on mine, I'm just gettin' down \nSparkamatic, I'm hangin' tight like a fanatic \nYou trapped me once and I thought that \nYou might have it \nSo step down and lend me your ear \n'89 in my time! You, '90 is my year. \n\nYou're weakenin' fast, YO! and I can tell it \nYour body's gettin' hot, so, so I can smell it \nSo don't be mad and don't be sad \n'Cause the lyrics belong to ICE, You can call me Dad \nYou're pitchin' a fit, so step back and endure \nLet the witch doctor, Ice, do the dance to cure \nSo come up close and don't be square \nYou wanna battle me -- Anytime, anywhere \n\nYou thought that I was weak, Boy, you're dead wrong \nSo come on, everybody and sing this song \n\nSay -- Play that funky music Say, go white boy, go white boy go \nplay that funky music Go white boy, go white boy, go \nLay down and boogie and play that funky music till you die. \n\nPlay that funky music Come on, Come on, let me hear \nPlay that funky music white boy you say it, say it \nPlay that funky music A little louder now \nPlay that funky music, white boy Come on, Come on, Come on \nPlay that funky music \n";
+        let key = b"YELLOW SUBMARINE";
+        let iv = b"\x00\x00\x00\x00\x00\x00\x00\x00\
+                   \x00\x00\x00\x00\x00\x00\x00\x00";
         assert_eq!(
-            block.to_vec(),
-            encrypt_aes_128_cbc(decrypted, iv.to_vec(), key.to_vec())
+            ciphertext,
+            encrypt_aes_128_cbc(plaintext.to_vec(), iv.to_vec(), key.to_vec())
         );
     }
 
     #[test]
     fn decrypt_aes_128_cbc_should_properly_decrypt() {
-        let key = GenericArray::from([0u8; 16]);
-        let iv = GenericArray::from([0u8; 16]);
-        let mut block = GenericArray::from([42u8; 16]);
-        let decrypted = block.clone().to_vec();
-        let cipher = Aes128::new(&key);
-        cipher.encrypt_block(&mut block);
+        let data = get_challenge_data(10).replace("\n", "");
+        let ciphertext = general_purpose::STANDARD
+            .decode(data.as_bytes().to_vec())
+            .unwrap();
+        let plaintext = b"I'm back and I'm ringin' the bell \nA rockin' on the mike while the fly girls yell \nIn ecstasy in the back of me \nWell that's my DJ Deshay cuttin' all them Z's \nHittin' hard and the girlies goin' crazy \nVanilla's on the mike, man I'm not lazy. \n\nI'm lettin' my drug kick in \nIt controls my mouth and I begin \nTo just let it flow, let my concepts go \nMy posse's to the side yellin', Go Vanilla Go! \n\nSmooth 'cause that's the way I will be \nAnd if you don't give a damn, then \nWhy you starin' at me \nSo get off 'cause I control the stage \nThere's no dissin' allowed \nI'm in my own phase \nThe girlies sa y they love me and that is ok \nAnd I can dance better than any kid n' play \n\nStage 2 -- Yea the one ya' wanna listen to \nIt's off my head so let the beat play through \nSo I can funk it up and make it sound good \n1-2-3 Yo -- Knock on some wood \nFor good luck, I like my rhymes atrocious \nSupercalafragilisticexpialidocious \nI'm an effect and that you can bet \nI can take a fly girl and make her wet. \n\nI'm like Samson -- Samson to Delilah \nThere's no denyin', You can try to hang \nBut you'll keep tryin' to get my style \nOver and over, practice makes perfect \nBut not if you're a loafer. \n\nYou'll get nowhere, no place, no time, no girls \nSoon -- Oh my God, homebody, you probably eat \nSpaghetti with a spoon! Come on and say it! \n\nVIP. Vanilla Ice yep, yep, I'm comin' hard like a rhino \nIntoxicating so you stagger like a wino \nSo punks stop trying and girl stop cryin' \nVanilla Ice is sellin' and you people are buyin' \n'Cause why the freaks are jockin' like Crazy Glue \nMovin' and groovin' trying to sing along \nAll through the ghetto groovin' this here song \nNow you're amazed by the VIP posse. \n\nSteppin' so hard like a German Nazi \nStartled by the bases hittin' ground \nThere's no trippin' on mine, I'm just gettin' down \nSparkamatic, I'm hangin' tight like a fanatic \nYou trapped me once and I thought that \nYou might have it \nSo step down and lend me your ear \n'89 in my time! You, '90 is my year. \n\nYou're weakenin' fast, YO! and I can tell it \nYour body's gettin' hot, so, so I can smell it \nSo don't be mad and don't be sad \n'Cause the lyrics belong to ICE, You can call me Dad \nYou're pitchin' a fit, so step back and endure \nLet the witch doctor, Ice, do the dance to cure \nSo come up close and don't be square \nYou wanna battle me -- Anytime, anywhere \n\nYou thought that I was weak, Boy, you're dead wrong \nSo come on, everybody and sing this song \n\nSay -- Play that funky music Say, go white boy, go white boy go \nplay that funky music Go white boy, go white boy, go \nLay down and boogie and play that funky music till you die. \n\nPlay that funky music Come on, Come on, let me hear \nPlay that funky music white boy you say it, say it \nPlay that funky music A little louder now \nPlay that funky music, white boy Come on, Come on, Come on \nPlay that funky music \n";
+        let key = b"YELLOW SUBMARINE";
+        let iv = b"\x00\x00\x00\x00\x00\x00\x00\x00\
+                   \x00\x00\x00\x00\x00\x00\x00\x00";
+        let decrypted = String::from_utf8(decrypt_aes_128_cbc(
+            ciphertext.clone(),
+            iv.to_vec(),
+            key.to_vec(),
+        ))
+        .unwrap();
+        for line in decrypted.lines() {
+            println!("'{}'", line);
+        }
         assert_eq!(
-            decrypted,
-            decrypt_aes_128_cbc(block.to_vec(), iv.to_vec(), key.to_vec())
+            plaintext.to_vec(),
+            decrypt_aes_128_cbc(ciphertext, iv.to_vec(), key.to_vec())
         );
     }
 
