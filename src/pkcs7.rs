@@ -12,11 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub fn pkcs7_padding(input: Vec<u8>, block_size: usize) -> Vec<u8> {
+pub fn pkcs7_padding_add(input: Vec<u8>, block_size: usize) -> Vec<u8> {
     let mut output = input.clone();
-    let padding = (block_size - (input.len() % block_size)) % block_size;
+    let padding = block_size - (input.len() % block_size);
     for _ in 0..padding {
         output.push(padding as u8);
+    }
+    output
+}
+
+pub fn pkcs7_padding_remove(input: Vec<u8>) -> Vec<u8> {
+    let mut output = input.clone();
+    let padding = *input.last().unwrap() as usize;
+    for _ in 0..padding {
+        output.pop();
     }
     output
 }
@@ -27,22 +36,35 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pkcs7_padding_pads_nothing_when_multiple_of_block_size() {
+    fn pkcs7_padding_add_pads_full_block_when_multiple_of_block_size() {
         assert_eq!(
-            "YELLOW SUBMARINE".as_bytes().to_vec(),
-            pkcs7_padding("YELLOW SUBMARINE".as_bytes().to_vec(), 16)
+            "YELLOW SUBMARINE\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10"
+                .as_bytes()
+                .to_vec(),
+            pkcs7_padding_add("YELLOW SUBMARINE".as_bytes().to_vec(), 16)
         )
     }
 
     #[test]
-    fn pkcs7_padding_pads_number_when_not_multiple_of_blocksize() {
+    fn pkcs7_padding_add_pads_number_when_not_multiple_of_blocksize() {
         assert_eq!(
             "YELLOW SUBMARINE\x01".as_bytes().to_vec(),
-            pkcs7_padding("YELLOW SUBMARINE".as_bytes().to_vec(), 17)
+            pkcs7_padding_add("YELLOW SUBMARINE".as_bytes().to_vec(), 17)
         );
         assert_eq!(
             "YELLOW SUBMARINE\x02\x02".as_bytes().to_vec(),
-            pkcs7_padding("YELLOW SUBMARINE".as_bytes().to_vec(), 18)
+            pkcs7_padding_add("YELLOW SUBMARINE".as_bytes().to_vec(), 18)
         );
+    }
+
+    #[test]
+    fn pkcs7_padding_remove_removes_full_block_when_multiple_of_block_size() {
+        assert_eq!(
+            "YELLOW SUBMARINE".as_bytes().to_vec(),
+            pkcs7_padding_remove(pkcs7_padding_add(
+                "YELLOW SUBMARINE".as_bytes().to_vec(),
+                16
+            ))
+        )
     }
 }

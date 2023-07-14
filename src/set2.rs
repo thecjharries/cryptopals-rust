@@ -17,13 +17,29 @@
 mod tests {
     // use super::*;
 
-    use crate::pkcs7::pkcs7_padding;
+    use crate::pkcs7::pkcs7_padding_add;
+    use crate::util::get_challenge_data;
+    use base64::{engine::general_purpose, Engine as _};
 
     #[test]
     fn challenge9() {
         assert_eq!(
             "YELLOW SUBMARINE\x04\x04\x04\x04".as_bytes().to_vec(),
-            pkcs7_padding("YELLOW SUBMARINE".as_bytes().to_vec(), 20)
+            pkcs7_padding_add("YELLOW SUBMARINE".as_bytes().to_vec(), 20)
         );
+    }
+
+    #[test]
+    fn challenge10() {
+        let data = get_challenge_data(10).replace("\n", "");
+        let ciphertext = general_purpose::STANDARD
+            .decode(data.as_bytes().to_vec())
+            .unwrap();
+        let key = "YELLOW SUBMARINE".as_bytes().to_vec();
+        let iv = vec![0; 16];
+        let plaintext = crate::aes::decrypt_aes_128_cbc(ciphertext, iv, key);
+        let plaintext = String::from_utf8(plaintext).unwrap();
+        assert!(plaintext.starts_with("I'm back and I'm ringin' the bell"));
+        assert!(plaintext.ends_with("Play that funky music \n"));
     }
 }
