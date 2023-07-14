@@ -14,7 +14,7 @@
 
 pub fn pkcs7_padding(input: Vec<u8>, block_size: usize) -> Vec<u8> {
     let mut output = input.clone();
-    let padding = (block_size - (input.len() % block_size)) % block_size;
+    let padding = block_size - (input.len() % block_size);
     for _ in 0..padding {
         output.push(padding as u8);
     }
@@ -27,9 +27,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pkcs7_padding_pads_nothing_when_multiple_of_block_size() {
+    fn pkcs7_padding_pads_full_block_when_multiple_of_block_size() {
         assert_eq!(
-            "YELLOW SUBMARINE".as_bytes().to_vec(),
+            "YELLOW SUBMARINE\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10"
+                .as_bytes()
+                .to_vec(),
             pkcs7_padding("YELLOW SUBMARINE".as_bytes().to_vec(), 16)
         )
     }
