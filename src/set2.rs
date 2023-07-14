@@ -17,7 +17,7 @@
 mod tests {
     // use super::*;
 
-    use crate::pkcs7::pkcs7_padding;
+    use crate::pkcs7::pkcs7_padding_add;
     use crate::util::get_challenge_data;
     use base64::{engine::general_purpose, Engine as _};
 
@@ -25,7 +25,7 @@ mod tests {
     fn challenge9() {
         assert_eq!(
             "YELLOW SUBMARINE\x04\x04\x04\x04".as_bytes().to_vec(),
-            pkcs7_padding("YELLOW SUBMARINE".as_bytes().to_vec(), 20)
+            pkcs7_padding_add("YELLOW SUBMARINE".as_bytes().to_vec(), 20)
         );
     }
 
