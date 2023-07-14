@@ -12,9 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use aes::cipher::{generic_array::GenericArray, BlockDecrypt, KeyInit};
+use aes::cipher::{generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyInit};
 use aes::Aes128;
 use std::collections::HashSet;
+
+pub fn encrypt_aes_128_ecb_block(block: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+    let mut blocks = vec![GenericArray::clone_from_slice(&block)];
+    let key = GenericArray::from_slice(&key);
+    let cipher = Aes128::new(&key);
+    cipher.encrypt_blocks(&mut blocks);
+    blocks[0].to_vec()
+}
 
 pub fn decrypt_aes_128_ecb_block(block: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     let mut blocks = vec![GenericArray::clone_from_slice(&block)];
@@ -55,6 +63,19 @@ pub fn guess_was_aes_ecb_used(ciphertext: Vec<u8>) -> bool {
 mod tests {
     use super::*;
     use aes::cipher::{BlockEncrypt, KeyInit};
+
+    #[test]
+    fn encrypt_aes_128_ecb_block_should_properly_encrypt() {
+        let key = GenericArray::from([0u8; 16]);
+        let mut block = GenericArray::from([42u8; 16]);
+        let decrypted = block.clone().to_vec();
+        let cipher = Aes128::new(&key);
+        cipher.encrypt_block(&mut block);
+        assert_eq!(
+            block.to_vec(),
+            encrypt_aes_128_ecb_block(decrypted, key.to_vec())
+        );
+    }
 
     #[test]
     fn decrypt_aes_128_ecb_block_should_properly_decrypt() {
