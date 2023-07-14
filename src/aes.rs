@@ -47,6 +47,27 @@ pub fn decrypt_aes_128_ecb(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
         .collect::<Vec<u8>>()
 }
 
+pub fn decrypt_aes_128_cbc(ciphertext: Vec<u8>, iv: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+    let mut blocks = Vec::new();
+    for block in ciphertext.chunks(16) {
+        blocks.push(GenericArray::clone_from_slice(block));
+    }
+    let key = GenericArray::from_slice(&key);
+    let cipher = Aes128::new(&key);
+    let mut previous_block = GenericArray::clone_from_slice(&iv);
+    let mut decrypted = Vec::new();
+    for block in blocks {
+        let mut decrypted_block = block.clone();
+        cipher.decrypt_block(&mut decrypted_block);
+        for (index, byte) in decrypted_block.iter_mut().enumerate() {
+            *byte ^= previous_block[index];
+        }
+        decrypted.append(&mut decrypted_block.to_vec());
+        previous_block = block;
+    }
+    decrypted
+}
+
 pub fn guess_was_aes_ecb_used(ciphertext: Vec<u8>) -> bool {
     let mut blocks = HashSet::new();
     for block in ciphertext.chunks(16) {
@@ -99,6 +120,20 @@ mod tests {
         let cipher = Aes128::new(&key);
         cipher.encrypt_block(&mut block);
         assert_eq!(decrypted, decrypt_aes_128_ecb(block.to_vec(), key.to_vec()));
+    }
+
+    #[test]
+    fn decrypt_aes_128_cbc_should_properly_decrypt() {
+        let key = GenericArray::from([0u8; 16]);
+        let iv = GenericArray::from([0u8; 16]);
+        let mut block = GenericArray::from([42u8; 16]);
+        let decrypted = block.clone().to_vec();
+        let cipher = Aes128::new(&key);
+        cipher.encrypt_block(&mut block);
+        assert_eq!(
+            decrypted,
+            decrypt_aes_128_cbc(block.to_vec(), iv.to_vec(), key.to_vec())
+        );
     }
 
     #[test]
