@@ -56,11 +56,13 @@ pub fn encryption_oracle<R: RngCore>(
 mod tests {
     use super::*;
 
-    use crate::pkcs7::pkcs7_padding_add;
-    use crate::util::get_challenge_data;
     use base64::{engine::general_purpose, Engine as _};
     use rand::SeedableRng;
     use rand_pcg::Pcg64;
+
+    use crate::aes::guess_encryption_method;
+    use crate::pkcs7::pkcs7_padding_add;
+    use crate::util::get_challenge_data;
 
     #[test]
     fn challenge9() {
@@ -108,5 +110,19 @@ mod tests {
         let plaintext = vec![0; 32];
         let (_, encryption_method) = encryption_oracle(plaintext, &mut rng);
         assert_eq!(AesEncryptionMethod::Aes128Cbc, encryption_method);
+    }
+
+    #[test]
+    fn challenge11() {
+        let mut rng = Pcg64::seed_from_u64(0);
+        let plaintext = vec![0; 32];
+        let (ciphertext, encryption_method) = encryption_oracle(plaintext, &mut rng);
+        assert_eq!(AesEncryptionMethod::Aes128Ecb, encryption_method);
+        assert_eq!(encryption_method, guess_encryption_method(ciphertext));
+        let mut rng = Pcg64::seed_from_u64(1);
+        let plaintext = vec![0; 32];
+        let (ciphertext, encryption_method) = encryption_oracle(plaintext, &mut rng);
+        assert_eq!(AesEncryptionMethod::Aes128Cbc, encryption_method);
+        assert_eq!(encryption_method, guess_encryption_method(ciphertext));
     }
 }
