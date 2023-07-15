@@ -124,13 +124,24 @@ pub fn guess_was_aes_ecb_used(ciphertext: Vec<u8>) -> bool {
     false
 }
 
+pub fn guess_encryption_method(ciphertext: Vec<u8>) -> AesEncryptionMethod {
+    if guess_was_aes_ecb_used(ciphertext) {
+        AesEncryptionMethod::Aes128Ecb
+    } else {
+        AesEncryptionMethod::Aes128Cbc
+    }
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
     use super::*;
     use aes::cipher::{BlockEncrypt, KeyInit};
     use base64::{engine::general_purpose, Engine as _};
+    use rand::SeedableRng;
+    use rand_pcg::Pcg64;
 
+    use crate::set2::encryption_oracle;
     use crate::util::get_challenge_data;
 
     #[test]
@@ -225,5 +236,29 @@ mod tests {
     fn guess_was_aes_ecb_used_should_return_true_when_duplicate_blocks() {
         let ciphertext = b"YELLOW SUBMARINEYELLOW SUBMARINE".to_vec();
         assert!(guess_was_aes_ecb_used(ciphertext));
+    }
+
+    #[test]
+    fn guess_encryption_method_should_return_aes_128_ecb() {
+        let mut rng = Pcg64::seed_from_u64(0);
+        let plaintext = vec![0; 64];
+        let (ciphertext, encryption_method) = encryption_oracle(plaintext, &mut rng);
+        assert_eq!(AesEncryptionMethod::Aes128Ecb, encryption_method);
+        assert_eq!(
+            AesEncryptionMethod::Aes128Ecb,
+            guess_encryption_method(ciphertext)
+        );
+    }
+
+    #[test]
+    fn guess_encryption_method_should_return_aes_128_cbc() {
+        let mut rng = Pcg64::seed_from_u64(1);
+        let plaintext = vec![0; 64];
+        let (ciphertext, encryption_method) = encryption_oracle(plaintext, &mut rng);
+        assert_eq!(AesEncryptionMethod::Aes128Cbc, encryption_method);
+        assert_eq!(
+            AesEncryptionMethod::Aes128Cbc,
+            guess_encryption_method(ciphertext)
+        );
     }
 }
