@@ -12,14 +12,61 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use rand::{Rng, RngCore};
+
+use crate::aes::AesEncryptionMethod;
+
+// Tarpaulin does not recognize the return as being covered
+#[cfg(not(tarpaulin_include))]
+fn generate_random_16_byte_key<R: RngCore>(rng: &mut R) -> Vec<u8> {
+    let mut key = vec![0; 16];
+    rng.fill_bytes(&mut key);
+    key
+}
+
+// Tarpaulin does not recognize either of the enums in the return as being covered
+#[cfg(not(tarpaulin_include))]
+pub fn encryption_oracle<R: RngCore>(
+    plaintext: Vec<u8>,
+    rng: &mut R,
+) -> (Vec<u8>, AesEncryptionMethod) {
+    let key = generate_random_16_byte_key(rng);
+    let mut plaintext = plaintext;
+    let mut prefix = vec![0; rng.gen_range(5..=10)];
+    rng.fill_bytes(&mut prefix);
+    let mut suffix = vec![0; rng.gen_range(5..=10)];
+    rng.fill_bytes(&mut suffix);
+    plaintext.extend(suffix);
+    plaintext.extend(prefix);
+    let iv = generate_random_16_byte_key(rng);
+    if rng.gen_bool(0.5) {
+        let padding_length = 16 - plaintext.len() % 16;
+        let padding = vec![padding_length as u8; padding_length];
+        plaintext.extend(padding);
+        (
+            crate::aes::encrypt_aes_128_ecb(plaintext, key),
+            AesEncryptionMethod::Aes128Ecb,
+        )
+    } else {
+        (
+            crate::aes::encrypt_aes_128_cbc(plaintext, iv, key),
+            AesEncryptionMethod::Aes128Cbc,
+        )
+    }
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
 
+    use base64::{engine::general_purpose, Engine as _};
+    use rand::SeedableRng;
+    use rand_pcg::Pcg64;
+
+    use crate::aes::guess_encryption_method;
     use crate::pkcs7::pkcs7_padding_add;
     use crate::util::get_challenge_data;
-    use base64::{engine::general_purpose, Engine as _};
 
     #[test]
     fn challenge9() {
@@ -41,5 +88,45 @@ mod tests {
         let plaintext = String::from_utf8(plaintext).unwrap();
         assert!(plaintext.starts_with("I'm back and I'm ringin' the bell"));
         assert!(plaintext.ends_with("Play that funky music \n"));
+    }
+
+    #[test]
+    fn generate_random_16_byte_key_works() {
+        let mut rng = Pcg64::seed_from_u64(0);
+        let key = generate_random_16_byte_key(&mut rng);
+        assert_eq!(
+            vec![83, 188, 226, 212, 218, 37, 174, 32, 251, 105, 191, 43, 225, 56, 249, 88],
+            key
+        );
+    }
+
+    #[test]
+    fn encryption_oracle_generates_ecb_output() {
+        let mut rng = Pcg64::seed_from_u64(0);
+        let plaintext = vec![0; 32];
+        let (_, encryption_method) = encryption_oracle(plaintext, &mut rng);
+        assert_eq!(AesEncryptionMethod::Aes128Ecb, encryption_method);
+    }
+
+    #[test]
+    fn encryption_oracle_generates_cbc_output() {
+        let mut rng = Pcg64::seed_from_u64(1);
+        let plaintext = vec![0; 32];
+        let (_, encryption_method) = encryption_oracle(plaintext, &mut rng);
+        assert_eq!(AesEncryptionMethod::Aes128Cbc, encryption_method);
+    }
+
+    #[test]
+    fn challenge11() {
+        let mut rng = Pcg64::seed_from_u64(0);
+        let plaintext = vec![0; 32];
+        let (ciphertext, encryption_method) = encryption_oracle(plaintext, &mut rng);
+        assert_eq!(AesEncryptionMethod::Aes128Ecb, encryption_method);
+        assert_eq!(encryption_method, guess_encryption_method(ciphertext));
+        let mut rng = Pcg64::seed_from_u64(1);
+        let plaintext = vec![0; 32];
+        let (ciphertext, encryption_method) = encryption_oracle(plaintext, &mut rng);
+        assert_eq!(AesEncryptionMethod::Aes128Cbc, encryption_method);
+        assert_eq!(encryption_method, guess_encryption_method(ciphertext));
     }
 }

@@ -18,6 +18,12 @@ use std::collections::HashSet;
 
 use crate::pkcs7::{pkcs7_padding_add, pkcs7_padding_remove};
 
+#[derive(Debug, PartialEq)]
+pub enum AesEncryptionMethod {
+    Aes128Ecb,
+    Aes128Cbc,
+}
+
 pub fn encrypt_aes_128_ecb_block(block: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     let mut block = GenericArray::clone_from_slice(&block);
     let key = GenericArray::from_slice(&key);
@@ -32,6 +38,21 @@ pub fn decrypt_aes_128_ecb_block(block: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     let cipher = Aes128::new(&key);
     cipher.decrypt_block(&mut blocks);
     blocks.to_vec()
+}
+
+pub fn encrypt_aes_128_ecb(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+    let mut blocks = Vec::new();
+    for block in plaintext.chunks(16) {
+        blocks.push(GenericArray::clone_from_slice(block));
+    }
+    let key = GenericArray::from_slice(&key);
+    let cipher = Aes128::new(&key);
+    cipher.encrypt_blocks(&mut blocks);
+    blocks
+        .iter()
+        .map(|block| block.to_vec())
+        .flatten()
+        .collect::<Vec<u8>>()
 }
 
 pub fn decrypt_aes_128_ecb(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
@@ -103,13 +124,24 @@ pub fn guess_was_aes_ecb_used(ciphertext: Vec<u8>) -> bool {
     false
 }
 
+pub fn guess_encryption_method(ciphertext: Vec<u8>) -> AesEncryptionMethod {
+    if guess_was_aes_ecb_used(ciphertext) {
+        AesEncryptionMethod::Aes128Ecb
+    } else {
+        AesEncryptionMethod::Aes128Cbc
+    }
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
     use super::*;
     use aes::cipher::{BlockEncrypt, KeyInit};
     use base64::{engine::general_purpose, Engine as _};
+    use rand::SeedableRng;
+    use rand_pcg::Pcg64;
 
+    use crate::set2::encryption_oracle;
     use crate::util::get_challenge_data;
 
     #[test]
@@ -136,6 +168,16 @@ mod tests {
             decrypted,
             decrypt_aes_128_ecb_block(block.to_vec(), key.to_vec())
         );
+    }
+
+    #[test]
+    fn encrypt_aes_128_ecb_should_properly_encrypt() {
+        let key = GenericArray::from([0u8; 16]);
+        let mut block = GenericArray::from([42u8; 16]);
+        let decrypted = block.clone().to_vec();
+        let cipher = Aes128::new(&key);
+        cipher.encrypt_block(&mut block);
+        assert_eq!(block.to_vec(), encrypt_aes_128_ecb(decrypted, key.to_vec()));
     }
 
     #[test]
@@ -194,5 +236,29 @@ mod tests {
     fn guess_was_aes_ecb_used_should_return_true_when_duplicate_blocks() {
         let ciphertext = b"YELLOW SUBMARINEYELLOW SUBMARINE".to_vec();
         assert!(guess_was_aes_ecb_used(ciphertext));
+    }
+
+    #[test]
+    fn guess_encryption_method_should_return_aes_128_ecb() {
+        let mut rng = Pcg64::seed_from_u64(0);
+        let plaintext = vec![0; 64];
+        let (ciphertext, encryption_method) = encryption_oracle(plaintext, &mut rng);
+        assert_eq!(AesEncryptionMethod::Aes128Ecb, encryption_method);
+        assert_eq!(
+            AesEncryptionMethod::Aes128Ecb,
+            guess_encryption_method(ciphertext)
+        );
+    }
+
+    #[test]
+    fn guess_encryption_method_should_return_aes_128_cbc() {
+        let mut rng = Pcg64::seed_from_u64(1);
+        let plaintext = vec![0; 64];
+        let (ciphertext, encryption_method) = encryption_oracle(plaintext, &mut rng);
+        assert_eq!(AesEncryptionMethod::Aes128Cbc, encryption_method);
+        assert_eq!(
+            AesEncryptionMethod::Aes128Cbc,
+            guess_encryption_method(ciphertext)
+        );
     }
 }
