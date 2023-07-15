@@ -34,6 +34,21 @@ pub fn decrypt_aes_128_ecb_block(block: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     blocks.to_vec()
 }
 
+pub fn encrypt_aes_128_ecb(plaintext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+    let mut blocks = Vec::new();
+    for block in plaintext.chunks(16) {
+        blocks.push(GenericArray::clone_from_slice(block));
+    }
+    let key = GenericArray::from_slice(&key);
+    let cipher = Aes128::new(&key);
+    cipher.encrypt_blocks(&mut blocks);
+    blocks
+        .iter()
+        .map(|block| block.to_vec())
+        .flatten()
+        .collect::<Vec<u8>>()
+}
+
 pub fn decrypt_aes_128_ecb(ciphertext: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     let key = GenericArray::from_slice(&key);
     let mut blocks = Vec::new();
@@ -136,6 +151,16 @@ mod tests {
             decrypted,
             decrypt_aes_128_ecb_block(block.to_vec(), key.to_vec())
         );
+    }
+
+    #[test]
+    fn encrypt_aes_128_ecb_should_properly_encrypt() {
+        let key = GenericArray::from([0u8; 16]);
+        let mut block = GenericArray::from([42u8; 16]);
+        let decrypted = block.clone().to_vec();
+        let cipher = Aes128::new(&key);
+        cipher.encrypt_block(&mut block);
+        assert_eq!(block.to_vec(), encrypt_aes_128_ecb(decrypted, key.to_vec()));
     }
 
     #[test]
