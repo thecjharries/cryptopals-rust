@@ -12,12 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rand::RngCore;
+use rand::{Rng, RngCore};
 
-pub fn generate_random_16_byte_key<R: RngCore>(rng: &mut R) -> Vec<u8> {
+fn generate_random_16_byte_key<R: RngCore>(rng: &mut R) -> Vec<u8> {
     let mut key = vec![0; 16];
     rng.fill_bytes(&mut key);
     key
+}
+
+#[derive(Debug, PartialEq)]
+pub enum EncryptionMethod {
+    Aes128Ecb,
+    Aes128Cbc,
+}
+
+pub fn encryption_oracle<R: RngCore>(
+    plaintext: Vec<u8>,
+    rng: &mut R,
+) -> (Vec<u8>, EncryptionMethod) {
+    let key = generate_random_16_byte_key(rng);
+    let mut plaintext = plaintext;
+    let mut prefix = vec![0; rng.gen_range(5..=10)];
+    rng.fill_bytes(&mut prefix);
+    let mut suffix = vec![0; rng.gen_range(5..=10)];
+    rng.fill_bytes(&mut suffix);
+    plaintext.extend(suffix);
+    plaintext.extend(prefix);
+    let iv = generate_random_16_byte_key(rng);
+    if rng.gen_bool(0.5) {
+        let padding_length = 16 - plaintext.len() % 16;
+        let padding = vec![padding_length as u8; padding_length];
+        plaintext.extend(padding);
+        (
+            crate::aes::encrypt_aes_128_ecb(plaintext, key),
+            EncryptionMethod::Aes128Ecb,
+        )
+    } else {
+        (
+            crate::aes::encrypt_aes_128_cbc(plaintext, iv, key),
+            EncryptionMethod::Aes128Cbc,
+        )
+    }
 }
 
 #[cfg(not(tarpaulin_include))]
@@ -61,5 +96,21 @@ mod tests {
             vec![83, 188, 226, 212, 218, 37, 174, 32, 251, 105, 191, 43, 225, 56, 249, 88],
             key
         );
+    }
+
+    #[test]
+    fn encryption_oracle_generates_ecb_output() {
+        let mut rng = Pcg64::seed_from_u64(0);
+        let plaintext = vec![0; 32];
+        let (_, encryption_method) = encryption_oracle(plaintext, &mut rng);
+        assert_eq!(EncryptionMethod::Aes128Ecb, encryption_method);
+    }
+
+    #[test]
+    fn encryption_oracle_generates_cbc_output() {
+        let mut rng = Pcg64::seed_from_u64(1);
+        let plaintext = vec![0; 32];
+        let (_, encryption_method) = encryption_oracle(plaintext, &mut rng);
+        assert_eq!(EncryptionMethod::Aes128Cbc, encryption_method);
     }
 }
