@@ -16,12 +16,16 @@ use rand::{Rng, RngCore};
 
 use crate::aes::AesEncryptionMethod;
 
+// Tarpaulin does not recognize the return as being covered
+#[cfg(not(tarpaulin_include))]
 fn generate_random_16_byte_key<R: RngCore>(rng: &mut R) -> Vec<u8> {
     let mut key = vec![0; 16];
     rng.fill_bytes(&mut key);
     key
 }
 
+// Tarpaulin does not recognize either of the enums in the return as being covered
+#[cfg(not(tarpaulin_include))]
 pub fn encryption_oracle<R: RngCore>(
     plaintext: Vec<u8>,
     rng: &mut R,
