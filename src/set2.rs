@@ -12,14 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use rand::RngCore;
+
+pub fn generate_random_16_byte_key<R: RngCore>(rng: &mut R) -> Vec<u8> {
+    let mut key = vec![0; 16];
+    rng.fill_bytes(&mut key);
+    key
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
 
     use crate::pkcs7::pkcs7_padding_add;
     use crate::util::get_challenge_data;
     use base64::{engine::general_purpose, Engine as _};
+    use rand::SeedableRng;
+    use rand_pcg::Pcg64;
 
     #[test]
     fn challenge9() {
@@ -41,5 +51,15 @@ mod tests {
         let plaintext = String::from_utf8(plaintext).unwrap();
         assert!(plaintext.starts_with("I'm back and I'm ringin' the bell"));
         assert!(plaintext.ends_with("Play that funky music \n"));
+    }
+
+    #[test]
+    fn generate_random_16_byte_key_works() {
+        let mut rng = Pcg64::seed_from_u64(0);
+        let key = generate_random_16_byte_key(&mut rng);
+        assert_eq!(
+            vec![83, 188, 226, 212, 218, 37, 174, 32, 251, 105, 191, 43, 225, 56, 249, 88],
+            key
+        );
     }
 }
