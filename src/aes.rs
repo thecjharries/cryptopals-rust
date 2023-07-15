@@ -18,6 +18,12 @@ use std::collections::HashSet;
 
 use crate::pkcs7::{pkcs7_padding_add, pkcs7_padding_remove};
 
+#[derive(Debug, PartialEq)]
+pub enum AesEncryptionMethod {
+    Aes128Ecb,
+    Aes128Cbc,
+}
+
 pub fn encrypt_aes_128_ecb_block(block: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
     let mut block = GenericArray::clone_from_slice(&block);
     let key = GenericArray::from_slice(&key);

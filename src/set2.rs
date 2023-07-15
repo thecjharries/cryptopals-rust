@@ -14,22 +14,18 @@
 
 use rand::{Rng, RngCore};
 
+use crate::aes::AesEncryptionMethod;
+
 fn generate_random_16_byte_key<R: RngCore>(rng: &mut R) -> Vec<u8> {
     let mut key = vec![0; 16];
     rng.fill_bytes(&mut key);
     key
 }
 
-#[derive(Debug, PartialEq)]
-pub enum EncryptionMethod {
-    Aes128Ecb,
-    Aes128Cbc,
-}
-
 pub fn encryption_oracle<R: RngCore>(
     plaintext: Vec<u8>,
     rng: &mut R,
-) -> (Vec<u8>, EncryptionMethod) {
+) -> (Vec<u8>, AesEncryptionMethod) {
     let key = generate_random_16_byte_key(rng);
     let mut plaintext = plaintext;
     let mut prefix = vec![0; rng.gen_range(5..=10)];
@@ -45,12 +41,12 @@ pub fn encryption_oracle<R: RngCore>(
         plaintext.extend(padding);
         (
             crate::aes::encrypt_aes_128_ecb(plaintext, key),
-            EncryptionMethod::Aes128Ecb,
+            AesEncryptionMethod::Aes128Ecb,
         )
     } else {
         (
             crate::aes::encrypt_aes_128_cbc(plaintext, iv, key),
-            EncryptionMethod::Aes128Cbc,
+            AesEncryptionMethod::Aes128Cbc,
         )
     }
 }
@@ -103,7 +99,7 @@ mod tests {
         let mut rng = Pcg64::seed_from_u64(0);
         let plaintext = vec![0; 32];
         let (_, encryption_method) = encryption_oracle(plaintext, &mut rng);
-        assert_eq!(EncryptionMethod::Aes128Ecb, encryption_method);
+        assert_eq!(AesEncryptionMethod::Aes128Ecb, encryption_method);
     }
 
     #[test]
@@ -111,6 +107,6 @@ mod tests {
         let mut rng = Pcg64::seed_from_u64(1);
         let plaintext = vec![0; 32];
         let (_, encryption_method) = encryption_oracle(plaintext, &mut rng);
-        assert_eq!(EncryptionMethod::Aes128Cbc, encryption_method);
+        assert_eq!(AesEncryptionMethod::Aes128Cbc, encryption_method);
     }
 }
