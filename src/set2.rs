@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rand::{Rng, RngCore};
+use base64::{engine::general_purpose, Engine as _};
+use rand::{Rng, RngCore, SeedableRng};
+use rand_pcg::Pcg64;
 
-use crate::aes::AesEncryptionMethod;
+use crate::aes::{encrypt_aes_128_ecb, AesEncryptionMethod};
+use crate::pkcs7::pkcs7_padding_add;
 
 // Tarpaulin does not recognize the return as being covered
 #[cfg(not(tarpaulin_include))]
@@ -55,17 +58,25 @@ pub fn encryption_oracle<R: RngCore>(
     }
 }
 
+pub fn challenge_12_oracle(plaintext: Vec<u8>, seed: u64) -> Vec<u8> {
+    let unknown_string = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK".to_string();
+    let unknown_data = general_purpose::STANDARD
+        .decode(unknown_string.as_bytes().to_vec())
+        .unwrap();
+    let mut rng = Pcg64::seed_from_u64(seed);
+    let key = generate_random_16_byte_key(&mut rng);
+    let mut plaintext = plaintext;
+    plaintext.extend(unknown_data);
+    plaintext = pkcs7_padding_add(plaintext, 16);
+    encrypt_aes_128_ecb(plaintext, key)
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use base64::{engine::general_purpose, Engine as _};
-    use rand::SeedableRng;
-    use rand_pcg::Pcg64;
-
     use crate::aes::guess_encryption_method;
-    use crate::pkcs7::pkcs7_padding_add;
     use crate::util::get_challenge_data;
 
     #[test]
@@ -128,5 +139,15 @@ mod tests {
         let (ciphertext, encryption_method) = encryption_oracle(plaintext, &mut rng);
         assert_eq!(AesEncryptionMethod::Aes128Cbc, encryption_method);
         assert_eq!(encryption_method, guess_encryption_method(ciphertext));
+    }
+
+    #[test]
+    fn challenge_12_oracle_extends_input() {
+        let plaintext = vec![0; 16];
+        let ciphertext = challenge_12_oracle(plaintext, 0);
+        assert_eq!(160, ciphertext.len());
+        let plaintext = vec![0; 32];
+        let ciphertext = challenge_12_oracle(plaintext, 0);
+        assert_eq!(176, ciphertext.len());
     }
 }
