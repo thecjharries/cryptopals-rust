@@ -71,6 +71,23 @@ pub fn challenge_12_oracle(plaintext: Vec<u8>, seed: u64) -> Vec<u8> {
     encrypt_aes_128_ecb(plaintext, key)
 }
 
+pub fn detect_block_size(oracle: fn(Vec<u8>, u64) -> Vec<u8>, seed: u64) -> usize {
+    let mut block_size = 0;
+    let mut previous_length = 0;
+    let mut current_length = 0;
+    let mut input = vec![0; 0];
+    loop {
+        input.push(0);
+        current_length = oracle(input.clone(), seed).len();
+        if previous_length != 0 && current_length != previous_length {
+            block_size = current_length - previous_length;
+            break;
+        }
+        previous_length = current_length;
+    }
+    block_size
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
@@ -149,5 +166,11 @@ mod tests {
         let plaintext = vec![0; 32];
         let ciphertext = challenge_12_oracle(plaintext, 0);
         assert_eq!(176, ciphertext.len());
+    }
+
+    #[test]
+    fn detect_block_size_works() {
+        let block_size = detect_block_size(challenge_12_oracle, 0);
+        assert_eq!(16, block_size);
     }
 }
