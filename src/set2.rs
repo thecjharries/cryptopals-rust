@@ -15,6 +15,8 @@
 use base64::{engine::general_purpose, Engine as _};
 use rand::{Rng, RngCore, SeedableRng};
 use rand_pcg::Pcg64;
+use serde::{Deserialize, Serialize};
+use serde_qs::from_str;
 
 use crate::aes::{encrypt_aes_128_ecb, AesEncryptionMethod};
 use crate::pkcs7::pkcs7_padding_add;
@@ -111,6 +113,13 @@ pub fn crack_challenge_12_oracle() -> Vec<u8> {
         }
     }
     plaintext
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+struct User {
+    email: String,
+    uid: u32,
+    role: String,
 }
 
 #[cfg(not(tarpaulin_include))]
