@@ -16,7 +16,7 @@ use base64::{engine::general_purpose, Engine as _};
 use rand::{Rng, RngCore, SeedableRng};
 use rand_pcg::Pcg64;
 use serde::{Deserialize, Serialize};
-use serde_qs::{from_str, to_string};
+use serde_qs::to_string;
 
 use crate::aes::{encrypt_aes_128_ecb, AesEncryptionMethod};
 use crate::pkcs7::pkcs7_padding_add;
@@ -74,20 +74,17 @@ pub fn challenge_12_oracle(plaintext: Vec<u8>, seed: u64) -> Vec<u8> {
 }
 
 pub fn detect_block_size(oracle: fn(Vec<u8>, u64) -> Vec<u8>, seed: u64) -> usize {
-    let mut block_size = 0;
     let mut previous_length = 0;
-    let mut current_length = 0;
+    let mut current_length: usize;
     let mut input = vec![0; 0];
     loop {
         input.push(0);
         current_length = oracle(input.clone(), seed).len();
         if previous_length != 0 && current_length != previous_length {
-            block_size = current_length - previous_length;
-            break;
+            return current_length - previous_length;
         }
         previous_length = current_length;
     }
-    block_size
 }
 
 pub fn crack_challenge_12_oracle() -> Vec<u8> {
