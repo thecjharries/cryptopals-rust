@@ -116,10 +116,28 @@ pub fn crack_challenge_12_oracle() -> Vec<u8> {
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
-struct User {
+pub struct User {
     email: String,
     uid: u32,
     role: String,
+}
+
+impl User {
+    pub fn new(email: String, uid: u32, role: String) -> Self {
+        assert!(
+            !email.contains('&') && !email.contains('='),
+            "Email cannot contain '&' or '='"
+        );
+        assert!(
+            !role.contains('&') && !role.contains('='),
+            "Role cannot contain '&' or '='"
+        );
+        Self { email, uid, role }
+    }
+
+    pub fn profile_for(email: String) -> Self {
+        Self::new(email, 10, "user".to_string())
+    }
 }
 
 impl std::fmt::Display for User {
@@ -223,5 +241,50 @@ mod tests {
         assert!(String::from_utf8(crack_challenge_12_oracle())
             .unwrap()
             .starts_with(String::from_utf8(unknown_data).unwrap().as_str()));
+    }
+
+    #[test]
+    #[should_panic]
+    fn user_email_cannot_contain_ampersand() {
+        User::new("foo&bar".to_string(), 10, "user".to_string());
+    }
+
+    #[test]
+    #[should_panic]
+    fn user_role_cannot_contain_ampersand() {
+        User::new("foo@bar.com".to_string(), 10, "user&admin".to_string());
+    }
+
+    #[test]
+    fn users_should_be_easily_created() {
+        let user = User::new("foo@bar.com".to_string(), 10, "user".to_string());
+        assert_eq!(
+            User {
+                email: "foo@bar.com".to_string(),
+                uid: 10,
+                role: "user".to_string(),
+            },
+            user
+        );
+    }
+
+    #[test]
+    fn user_profile_for_should_hardcode_fields() {
+        assert_eq!(
+            User {
+                email: "foo@bar.com".to_string(),
+                uid: 10,
+                role: "user".to_string(),
+            },
+            User::profile_for("foo@bar.com".to_string())
+        );
+    }
+
+    #[test]
+    fn user_to_string_should_create_query_string() {
+        assert_eq!(
+            "email=foo%40bar.com&uid=10&role=user".to_string(),
+            User::profile_for("foo@bar.com".to_string()).to_string()
+        );
     }
 }
