@@ -16,7 +16,7 @@ use base64::{engine::general_purpose, Engine as _};
 use rand::{Rng, RngCore, SeedableRng};
 use rand_pcg::Pcg64;
 use serde::{Deserialize, Serialize};
-use serde_qs::from_str;
+use serde_qs::{from_str, to_string};
 
 use crate::aes::{encrypt_aes_128_ecb, AesEncryptionMethod};
 use crate::pkcs7::pkcs7_padding_add;
@@ -120,6 +120,12 @@ struct User {
     email: String,
     uid: u32,
     role: String,
+}
+
+impl std::fmt::Display for User {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", to_string(self).unwrap())
+    }
 }
 
 #[cfg(not(tarpaulin_include))]
