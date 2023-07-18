@@ -15,6 +15,8 @@
 use base64::{engine::general_purpose, Engine as _};
 use rand::{Rng, RngCore, SeedableRng};
 use rand_pcg::Pcg64;
+use serde::{Deserialize, Serialize};
+use serde_qs::to_string;
 
 use crate::aes::{encrypt_aes_128_ecb, AesEncryptionMethod};
 use crate::pkcs7::pkcs7_padding_add;
@@ -72,20 +74,17 @@ pub fn challenge_12_oracle(plaintext: Vec<u8>, seed: u64) -> Vec<u8> {
 }
 
 pub fn detect_block_size(oracle: fn(Vec<u8>, u64) -> Vec<u8>, seed: u64) -> usize {
-    let mut block_size = 0;
     let mut previous_length = 0;
-    let mut current_length = 0;
+    let mut current_length: usize;
     let mut input = vec![0; 0];
     loop {
         input.push(0);
         current_length = oracle(input.clone(), seed).len();
         if previous_length != 0 && current_length != previous_length {
-            block_size = current_length - previous_length;
-            break;
+            return current_length - previous_length;
         }
         previous_length = current_length;
     }
-    block_size
 }
 
 pub fn crack_challenge_12_oracle() -> Vec<u8> {
@@ -113,12 +112,53 @@ pub fn crack_challenge_12_oracle() -> Vec<u8> {
     plaintext
 }
 
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct User {
+    email: String,
+    uid: u32,
+    role: String,
+}
+
+impl User {
+    pub fn new(email: String, uid: u32, role: String) -> Self {
+        assert!(
+            !email.contains('&') && !email.contains('='),
+            "Email cannot contain '&' or '='"
+        );
+        assert!(
+            !role.contains('&') && !role.contains('='),
+            "Role cannot contain '&' or '='"
+        );
+        Self { email, uid, role }
+    }
+
+    pub fn profile_for(email: String) -> Self {
+        Self::new(email, 10, "user".to_string())
+    }
+
+    pub fn encrypt(&self) -> Vec<u8> {
+        let plaintext = pkcs7_padding_add(self.to_string().as_bytes().to_vec(), 16);
+        // This is real bad
+        // Serves great for testing
+        // Just don't seed your RNG with the user ID
+        let mut rng = Pcg64::seed_from_u64(self.uid as u64);
+        let key = generate_random_16_byte_key(&mut rng);
+        encrypt_aes_128_ecb(plaintext, key)
+    }
+}
+
+impl std::fmt::Display for User {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", to_string(self).unwrap())
+    }
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::aes::guess_encryption_method;
+    use crate::aes::{decrypt_aes_128_ecb, guess_encryption_method};
     use crate::util::get_challenge_data;
 
     #[test]
@@ -208,5 +248,96 @@ mod tests {
         assert!(String::from_utf8(crack_challenge_12_oracle())
             .unwrap()
             .starts_with(String::from_utf8(unknown_data).unwrap().as_str()));
+    }
+
+    #[test]
+    #[should_panic]
+    fn user_email_cannot_contain_ampersand() {
+        User::new("foo&bar".to_string(), 10, "user".to_string());
+    }
+
+    #[test]
+    #[should_panic]
+    fn user_role_cannot_contain_ampersand() {
+        User::new("foo@bar.com".to_string(), 10, "user&admin".to_string());
+    }
+
+    #[test]
+    fn users_should_be_easily_created() {
+        let user = User::new("foo@bar.com".to_string(), 10, "user".to_string());
+        assert_eq!(
+            User {
+                email: "foo@bar.com".to_string(),
+                uid: 10,
+                role: "user".to_string(),
+            },
+            user
+        );
+    }
+
+    #[test]
+    fn user_profile_for_should_hardcode_fields() {
+        assert_eq!(
+            User {
+                email: "foo@bar.com".to_string(),
+                uid: 10,
+                role: "user".to_string(),
+            },
+            User::profile_for("foo@bar.com".to_string())
+        );
+    }
+
+    #[test]
+    fn user_to_string_should_create_query_string() {
+        assert_eq!(
+            "email=foo%40bar.com&uid=10&role=user".to_string(),
+            User::profile_for("foo@bar.com".to_string()).to_string()
+        );
+    }
+
+    #[test]
+    fn user_can_encrypt_its_param_string() {
+        let user = User::profile_for("foo@bar.com".to_string());
+        assert_eq!(
+            vec![
+                227, 124, 75, 6, 52, 243, 107, 177, 5, 208, 205, 39, 104, 157, 3, 190, 102, 165,
+                185, 125, 73, 196, 68, 71, 39, 165, 35, 138, 117, 34, 171, 84, 249, 104, 214, 247,
+                72, 85, 48, 245, 124, 113, 91, 78, 101, 207, 3, 117
+            ],
+            user.encrypt()
+        );
+    }
+
+    #[test]
+    fn challenge13() {
+        // email=aaaaaaaaaa
+        // %40aaaaaaaaaaaa.
+        // com&uid=10&role=
+        // user
+        let user = User::profile_for("aaaaaaaaaa@aaaaaaaaaaaa.com".to_string());
+        let mut rng = Pcg64::seed_from_u64(user.uid as u64);
+        let key = generate_random_16_byte_key(&mut rng);
+        let low_perms = user.encrypt();
+        let admin_role = pkcs7_padding_add("admin".as_bytes().to_vec(), 16);
+        // email=a%40aa.com
+        let user = User::profile_for(format!(
+            "{}{}",
+            "a@aa.com",
+            String::from_utf8(admin_role).unwrap()
+        ));
+        let high_perms = user.encrypt();
+        let admin_block = &high_perms[16..32];
+        let mut crafted_perms = low_perms.clone()[..low_perms.len() - 16].to_vec();
+        crafted_perms.extend_from_slice(admin_block);
+        let decrypted = decrypt_aes_128_ecb(crafted_perms, key);
+        assert!(String::from_utf8(decrypted)
+            .unwrap()
+            .split('&')
+            .nth(2)
+            .unwrap()
+            .split('=')
+            .nth(1)
+            .unwrap()
+            .starts_with("admin"));
     }
 }
