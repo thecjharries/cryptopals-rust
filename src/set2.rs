@@ -73,6 +73,23 @@ pub fn challenge_12_oracle(plaintext: Vec<u8>, seed: u64) -> Vec<u8> {
     encrypt_aes_128_ecb(plaintext, key)
 }
 
+pub fn challenge_14_oracle(plaintext: Vec<u8>, seed: u64) -> Vec<u8> {
+    let mut rng = Pcg64::seed_from_u64(seed);
+    let key = generate_random_16_byte_key(&mut rng);
+    let random_length = rng.gen_range(0..=100);
+    let mut random_data = vec![0; random_length];
+    rng.fill_bytes(&mut random_data);
+    let mut input = random_data;
+    input.extend(plaintext);
+    let unknown_string = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK".to_string();
+    let unknown_data = general_purpose::STANDARD
+        .decode(unknown_string.as_bytes().to_vec())
+        .unwrap();
+    input.extend(unknown_data);
+    input = pkcs7_padding_add(input, 16);
+    encrypt_aes_128_ecb(input, key)
+}
+
 pub fn detect_block_size(oracle: fn(Vec<u8>, u64) -> Vec<u8>, seed: u64) -> usize {
     let mut previous_length = 0;
     let mut current_length: usize;
@@ -231,6 +248,23 @@ mod tests {
         let plaintext = vec![0; 32];
         let ciphertext = challenge_12_oracle(plaintext, 0);
         assert_eq!(176, ciphertext.len());
+    }
+
+    #[test]
+    fn challenge_14_oracle_extends_input() {
+        let plaintext = vec![0; 16];
+        let ciphertext = challenge_14_oracle(plaintext, 0);
+        assert_eq!(240, ciphertext.len());
+        let plaintext = vec![0; 32];
+        let ciphertext = challenge_14_oracle(plaintext, 0);
+        assert_eq!(256, ciphertext.len());
+    }
+
+    #[test]
+    fn challenge_14_oracle_generates_different_inputs() {
+        let first = challenge_14_oracle(vec![], 0);
+        let second = challenge_14_oracle(vec![], 10);
+        assert_ne!(first, second);
     }
 
     #[test]
