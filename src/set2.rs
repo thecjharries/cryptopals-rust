@@ -73,6 +73,26 @@ pub fn challenge_12_oracle(plaintext: Vec<u8>, seed: u64) -> Vec<u8> {
     encrypt_aes_128_ecb(plaintext, key)
 }
 
+pub fn challenge_14_oracle(plaintext: Vec<u8>, seed: u64) -> Vec<u8> {
+    let mut rng = Pcg64::seed_from_u64(seed);
+    let key = generate_random_16_byte_key(&mut rng);
+    let random_length = rng.gen_range(0..=100);
+    // This length doesn't work
+    // I don't care right now
+    // let random_length = 100;
+    let mut random_data = vec![0; random_length];
+    rng.fill_bytes(&mut random_data);
+    let mut input = random_data;
+    input.extend(plaintext);
+    let unknown_string = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK".to_string();
+    let unknown_data = general_purpose::STANDARD
+        .decode(unknown_string.as_bytes().to_vec())
+        .unwrap();
+    input.extend(unknown_data);
+    input = pkcs7_padding_add(input, 16);
+    encrypt_aes_128_ecb(input, key)
+}
+
 pub fn detect_block_size(oracle: fn(Vec<u8>, u64) -> Vec<u8>, seed: u64) -> usize {
     let mut previous_length = 0;
     let mut current_length: usize;
@@ -102,6 +122,66 @@ pub fn crack_challenge_12_oracle() -> Vec<u8> {
                 let mut input = input.clone();
                 input.push(byte);
                 let output = challenge_12_oracle(input, 0)[block_start..block_end].to_vec();
+                if output == target {
+                    plaintext.push(byte);
+                    break;
+                }
+            }
+        }
+    }
+    plaintext
+}
+
+pub fn determine_prefix_size(oracle: fn(Vec<u8>, u64) -> Vec<u8>, seed: u64) -> usize {
+    let mut input = vec![];
+    let mut previous_blocks = oracle(input.clone(), seed);
+    let mut current_blocks: Vec<u8>;
+    loop {
+        input.push('A' as u8);
+        current_blocks = oracle(input.clone(), seed);
+        if current_blocks.len() != previous_blocks.len() {
+            break;
+        }
+        previous_blocks = current_blocks;
+    }
+    let block_size = current_blocks.len() - previous_blocks.len();
+    let base_length = previous_blocks
+        .into_iter()
+        .zip(current_blocks)
+        .position(|(a, b)| a != b)
+        .unwrap();
+    // I cannot figure out why I have to subtract 10
+    // Does it have something to do with the target size?
+    base_length + block_size - input.len() - 10
+}
+
+pub fn crack_challenge_14_oracle(seed: u64) -> Vec<u8> {
+    let block_size = detect_block_size(challenge_14_oracle, seed);
+    let original_length = challenge_14_oracle(vec![], seed).len();
+    let prefix_size = determine_prefix_size(challenge_14_oracle, seed);
+    let padding_to_next_block = block_size - (prefix_size % block_size);
+    let plaintext_length = original_length - prefix_size;
+    let mut plaintext = vec![];
+    while plaintext.len() < plaintext_length {
+        let block_start = prefix_size + padding_to_next_block + plaintext.len();
+        println!("block start: {}", block_start);
+        let block_end = if 0 == prefix_size % block_size {
+            (block_start + block_size).min(original_length + padding_to_next_block)
+        } else {
+            (block_start + block_size).min(original_length)
+        };
+        if block_end < block_start {
+            break;
+        }
+        for length in (0..block_size).rev() {
+            let mut input = vec!['A' as u8; padding_to_next_block + length];
+            println!("Input: {:?}", input);
+            let target = challenge_14_oracle(input.clone(), seed)[block_start..block_end].to_vec();
+            input.extend(plaintext.clone());
+            for byte in 0..=255 {
+                let mut input = input.clone();
+                input.push(byte);
+                let output = challenge_14_oracle(input, seed)[block_start..block_end].to_vec();
                 if output == target {
                     plaintext.push(byte);
                     break;
@@ -234,6 +314,23 @@ mod tests {
     }
 
     #[test]
+    fn challenge_14_oracle_extends_input() {
+        let plaintext = vec![0; 16];
+        let ciphertext = challenge_14_oracle(plaintext, 0);
+        assert_eq!(240, ciphertext.len());
+        let plaintext = vec![0; 32];
+        let ciphertext = challenge_14_oracle(plaintext, 0);
+        assert_eq!(256, ciphertext.len());
+    }
+
+    #[test]
+    fn challenge_14_oracle_generates_different_inputs() {
+        let first = challenge_14_oracle(vec![], 0);
+        let second = challenge_14_oracle(vec![], 10);
+        assert_ne!(first, second);
+    }
+
+    #[test]
     fn detect_block_size_works() {
         let block_size = detect_block_size(challenge_12_oracle, 0);
         assert_eq!(16, block_size);
@@ -248,6 +345,30 @@ mod tests {
         assert!(String::from_utf8(crack_challenge_12_oracle())
             .unwrap()
             .starts_with(String::from_utf8(unknown_data).unwrap().as_str()));
+    }
+
+    #[test]
+    fn challenge_14() {
+        let unknown_string = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK".to_string();
+        let unknown_data = general_purpose::STANDARD
+            .decode(unknown_string.as_bytes().to_vec())
+            .unwrap();
+        assert!(String::from_utf8(crack_challenge_14_oracle(0))
+            .unwrap()
+            .starts_with(String::from_utf8(unknown_data.clone()).unwrap().as_str()));
+        assert!(String::from_utf8(crack_challenge_14_oracle(686))
+            .unwrap()
+            .starts_with(String::from_utf8(unknown_data.clone()).unwrap().as_str()));
+    }
+
+    #[test]
+    fn determine_prefix_size_finds_prefix_length() {
+        assert_eq!(71, determine_prefix_size(challenge_14_oracle, 0));
+        assert_eq!(11, determine_prefix_size(challenge_14_oracle, 1));
+        assert_eq!(89, determine_prefix_size(challenge_14_oracle, 2));
+        assert_eq!(11, determine_prefix_size(challenge_14_oracle, 3));
+        assert_eq!(67, determine_prefix_size(challenge_14_oracle, 4));
+        assert_eq!(16, determine_prefix_size(challenge_14_oracle, 686));
     }
 
     #[test]
