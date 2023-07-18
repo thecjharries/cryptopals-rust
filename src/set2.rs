@@ -158,7 +158,7 @@ impl std::fmt::Display for User {
 mod tests {
     use super::*;
 
-    use crate::aes::guess_encryption_method;
+    use crate::aes::{decrypt_aes_128_ecb, guess_encryption_method};
     use crate::util::get_challenge_data;
 
     #[test]
@@ -306,5 +306,38 @@ mod tests {
             ],
             user.encrypt()
         );
+    }
+
+    #[test]
+    fn challenge13() {
+        // email=aaaaaaaaaa
+        // %40aaaaaaaaaaaa.
+        // com&uid=10&role=
+        // user
+        let user = User::profile_for("aaaaaaaaaa@aaaaaaaaaaaa.com".to_string());
+        let mut rng = Pcg64::seed_from_u64(user.uid as u64);
+        let key = generate_random_16_byte_key(&mut rng);
+        let low_perms = user.encrypt();
+        let admin_role = pkcs7_padding_add("admin".as_bytes().to_vec(), 16);
+        // email=a%40aa.com
+        let user = User::profile_for(format!(
+            "{}{}",
+            "a@aa.com",
+            String::from_utf8(admin_role).unwrap()
+        ));
+        let high_perms = user.encrypt();
+        let admin_block = &high_perms[16..32];
+        let mut crafted_perms = low_perms.clone()[..low_perms.len() - 16].to_vec();
+        crafted_perms.extend_from_slice(admin_block);
+        let decrypted = decrypt_aes_128_ecb(crafted_perms, key);
+        assert!(String::from_utf8(decrypted)
+            .unwrap()
+            .split('&')
+            .nth(2)
+            .unwrap()
+            .split('=')
+            .nth(1)
+            .unwrap()
+            .starts_with("admin"));
     }
 }
