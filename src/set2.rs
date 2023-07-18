@@ -129,6 +129,14 @@ pub fn crack_challenge_12_oracle() -> Vec<u8> {
     plaintext
 }
 
+pub fn crack_challenge_14_oracle() -> Vec<u8> {
+    let block_size = detect_block_size(challenge_14_oracle, 0);
+    let original_length = challenge_14_oracle(vec![], 0).len();
+    let mut plaintext = Vec::new();
+    todo!();
+    plaintext
+}
+
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct User {
     email: String,
