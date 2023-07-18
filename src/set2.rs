@@ -157,15 +157,10 @@ pub fn determine_prefix_size(oracle: fn(Vec<u8>, u64) -> Vec<u8>, seed: u64) -> 
 
 pub fn crack_challenge_14_oracle() -> Vec<u8> {
     let block_size = detect_block_size(challenge_14_oracle, 0);
-    println!("block size: {}", block_size);
     let original_length = challenge_14_oracle(vec![], 0).len();
-    println!("original length: {}", original_length);
     let prefix_size = determine_prefix_size(challenge_14_oracle, 0);
-    println!("prefix size: {}", prefix_size);
     let padding_to_next_block = block_size - (prefix_size % block_size);
-    println!("padding to next block: {}", padding_to_next_block);
     let plaintext_length = original_length - prefix_size;
-    println!("plaintext length: {}", plaintext_length);
     let mut plaintext = vec![];
     while plaintext.len() < plaintext_length {
         let block_start = prefix_size + padding_to_next_block + plaintext.len();
@@ -175,7 +170,6 @@ pub fn crack_challenge_14_oracle() -> Vec<u8> {
         } else {
             (block_start + block_size).min(original_length)
         };
-        println!("block end: {}", block_end);
         if block_end < block_start {
             break;
         }
@@ -195,10 +189,6 @@ pub fn crack_challenge_14_oracle() -> Vec<u8> {
             }
         }
     }
-    println!(
-        "plaintext: {:?}",
-        String::from_utf8(plaintext.clone()).unwrap()
-    );
     plaintext
 }
 
@@ -364,11 +354,6 @@ mod tests {
             .decode(unknown_string.as_bytes().to_vec())
             .unwrap();
         let result = crack_challenge_14_oracle();
-        println!("{:?}", String::from_utf8(result.clone()).unwrap());
-        println!(
-            "{:?}",
-            String::from_utf8(unknown_data.clone()).unwrap().as_str()
-        );
         assert!(String::from_utf8(result)
             .unwrap()
             .starts_with(String::from_utf8(unknown_data).unwrap().as_str()));
