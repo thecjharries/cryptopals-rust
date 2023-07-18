@@ -135,6 +135,16 @@ impl User {
     pub fn profile_for(email: String) -> Self {
         Self::new(email, 10, "user".to_string())
     }
+
+    pub fn encrypt(&self) -> Vec<u8> {
+        let plaintext = pkcs7_padding_add(self.to_string().as_bytes().to_vec(), 16);
+        // This is real bad
+        // Serves great for testing
+        // Just don't seed your RNG with the user ID
+        let mut rng = Pcg64::seed_from_u64(self.uid as u64);
+        let key = generate_random_16_byte_key(&mut rng);
+        encrypt_aes_128_ecb(plaintext, key)
+    }
 }
 
 impl std::fmt::Display for User {
@@ -282,6 +292,19 @@ mod tests {
         assert_eq!(
             "email=foo%40bar.com&uid=10&role=user".to_string(),
             User::profile_for("foo@bar.com".to_string()).to_string()
+        );
+    }
+
+    #[test]
+    fn user_can_encrypt_its_param_string() {
+        let user = User::profile_for("foo@bar.com".to_string());
+        assert_eq!(
+            vec![
+                227, 124, 75, 6, 52, 243, 107, 177, 5, 208, 205, 39, 104, 157, 3, 190, 102, 165,
+                185, 125, 73, 196, 68, 71, 39, 165, 35, 138, 117, 34, 171, 84, 249, 104, 214, 247,
+                72, 85, 48, 245, 124, 113, 91, 78, 101, 207, 3, 117
+            ],
+            user.encrypt()
         );
     }
 }
