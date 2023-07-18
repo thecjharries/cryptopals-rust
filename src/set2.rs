@@ -129,6 +129,29 @@ pub fn crack_challenge_12_oracle() -> Vec<u8> {
     plaintext
 }
 
+pub fn determine_prefix_size(oracle: fn(Vec<u8>, u64) -> Vec<u8>, seed: u64) -> usize {
+    let mut input = vec![];
+    let mut previous_blocks = oracle(input.clone(), seed);
+    let mut current_blocks: Vec<u8>;
+    loop {
+        input.push('A' as u8);
+        current_blocks = oracle(input.clone(), seed);
+        if current_blocks.len() != previous_blocks.len() {
+            break;
+        }
+        previous_blocks = current_blocks;
+    }
+    let block_size = current_blocks.len() - previous_blocks.len();
+    let base_length = previous_blocks
+        .into_iter()
+        .zip(current_blocks)
+        .position(|(a, b)| a != b)
+        .unwrap();
+    // I cannot figure out why I have to subtract 10
+    // Does it have something to do with the target size?
+    base_length + block_size - input.len() - 10
+}
+
 pub fn crack_challenge_14_oracle() -> Vec<u8> {
     let block_size = detect_block_size(challenge_14_oracle, 0);
     let original_length = challenge_14_oracle(vec![], 0).len();
@@ -290,6 +313,15 @@ mod tests {
         assert!(String::from_utf8(crack_challenge_12_oracle())
             .unwrap()
             .starts_with(String::from_utf8(unknown_data).unwrap().as_str()));
+    }
+
+    #[test]
+    fn determine_prefix_size_finds_prefix_length() {
+        assert_eq!(71, determine_prefix_size(challenge_14_oracle, 0));
+        assert_eq!(11, determine_prefix_size(challenge_14_oracle, 1));
+        assert_eq!(89, determine_prefix_size(challenge_14_oracle, 2));
+        assert_eq!(11, determine_prefix_size(challenge_14_oracle, 3));
+        assert_eq!(67, determine_prefix_size(challenge_14_oracle, 4));
     }
 
     #[test]
