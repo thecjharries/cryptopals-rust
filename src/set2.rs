@@ -155,7 +155,8 @@ pub fn determine_prefix_size(oracle: fn(Vec<u8>, u64) -> Vec<u8>, seed: u64) -> 
 pub fn crack_challenge_14_oracle() -> Vec<u8> {
     let block_size = detect_block_size(challenge_14_oracle, 0);
     let original_length = challenge_14_oracle(vec![], 0).len();
-    let mut plaintext = Vec::new();
+    let prefix_size = determine_prefix_size(challenge_14_oracle, 0);
+    let mut plaintext = vec![];
     todo!();
     plaintext
 }
@@ -311,6 +312,17 @@ mod tests {
             .decode(unknown_string.as_bytes().to_vec())
             .unwrap();
         assert!(String::from_utf8(crack_challenge_12_oracle())
+            .unwrap()
+            .starts_with(String::from_utf8(unknown_data).unwrap().as_str()));
+    }
+
+    #[test]
+    fn challenge_14() {
+        let unknown_string = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK".to_string();
+        let unknown_data = general_purpose::STANDARD
+            .decode(unknown_string.as_bytes().to_vec())
+            .unwrap();
+        assert!(String::from_utf8(crack_challenge_14_oracle())
             .unwrap()
             .starts_with(String::from_utf8(unknown_data).unwrap().as_str()));
     }
