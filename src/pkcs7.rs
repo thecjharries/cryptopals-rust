@@ -31,7 +31,17 @@ pub fn pkcs7_padding_remove(input: Vec<u8>) -> Vec<u8> {
 }
 
 pub fn pkcs7_padding_validation(input: Vec<u8>) -> Result<Vec<u8>, String> {
-    todo!()
+    let mut input = input.clone();
+    let padding = input.pop().unwrap();
+    if padding > input.len() as u8 {
+        return Err("Padding is longer than input".to_string());
+    }
+    for _ in 0..padding - 1 {
+        if padding != input.pop().unwrap() {
+            return Err("Padding is not valid".to_string());
+        }
+    }
+    Ok(input)
 }
 
 #[cfg(not(tarpaulin_include))]
