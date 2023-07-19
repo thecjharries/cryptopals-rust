@@ -30,6 +30,20 @@ pub fn pkcs7_padding_remove(input: Vec<u8>) -> Vec<u8> {
     output
 }
 
+pub fn pkcs7_padding_validation(input: Vec<u8>) -> Result<Vec<u8>, String> {
+    let mut input = input.clone();
+    let padding = input.pop().unwrap();
+    if padding > input.len() as u8 {
+        return Err("Padding is longer than input".to_string());
+    }
+    for _ in 0..padding - 1 {
+        if padding != input.pop().unwrap() {
+            return Err("Padding is not valid".to_string());
+        }
+    }
+    Ok(input)
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
@@ -66,5 +80,46 @@ mod tests {
                 16
             ))
         )
+    }
+
+    #[test]
+    fn pkcs7_padding_validation_strips_padding_when_valid() {
+        assert_eq!(
+            "ICE ICE BABY".as_bytes().to_vec(),
+            pkcs7_padding_validation(pkcs7_padding_add("ICE ICE BABY".as_bytes().to_vec(), 16))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn pkcs7_padding_validation_errors_when_padding_is_longer_than_input() {
+        let mut input = "ICE ICE BABY".as_bytes().to_vec();
+        input.push(255);
+        assert_eq!(
+            Err("Padding is longer than input".to_string()),
+            pkcs7_padding_validation(input)
+        );
+    }
+
+    #[test]
+    fn pkcs7_padding_validation_errors_when_padding_is_not_valid() {
+        let mut input = "ICE ICE BABY".as_bytes().to_vec();
+        input.push(5);
+        input.push(5);
+        input.push(5);
+        input.push(5);
+        assert_eq!(
+            Err("Padding is not valid".to_string()),
+            pkcs7_padding_validation(input)
+        );
+        let mut input = "ICE ICE BABY".as_bytes().to_vec();
+        input.push(1);
+        input.push(2);
+        input.push(3);
+        input.push(4);
+        assert_eq!(
+            Err("Padding is not valid".to_string()),
+            pkcs7_padding_validation(input)
+        );
     }
 }
