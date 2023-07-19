@@ -30,6 +30,10 @@ pub fn pkcs7_padding_remove(input: Vec<u8>) -> Vec<u8> {
     output
 }
 
+pub fn pkcs7_padding_validation(input: Vec<u8>) -> Result<(), String> {
+    todo!()
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
