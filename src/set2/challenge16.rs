@@ -65,4 +65,10 @@ mod tests {
             plaintext
         );
     }
+
+    #[test]
+    fn challenge_16() {
+        let decrypted_result = String::from_utf8(inject_admin()).unwrap();
+        assert!(decrypted_result.contains("admin=true"));
+    }
 }
