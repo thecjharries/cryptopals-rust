@@ -11,3 +11,34 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+use rand::{RngCore, SeedableRng};
+use rand_pcg::Pcg64;
+use urlencoding::encode;
+
+use crate::set2::generate_random_16_byte_key;
+
+pub fn challenge_16_oracle(userdata: Vec<u8>, seed: u64) -> Vec<u8> {
+    todo!()
+}
+
+#[cfg(not(tarpaulin_include))]
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::aes::decrypt_aes_128_cbc;
+
+    #[test]
+    fn challenge_16_oracle_provides_expected_wrapping() {
+        let mut rng = Pcg64::seed_from_u64(0);
+        let key = generate_random_16_byte_key(&mut rng);
+        let iv = generate_random_16_byte_key(&mut rng);
+        let ciphertext = challenge_16_oracle(vec![], 0);
+        let plaintext = decrypt_aes_128_cbc(ciphertext, iv, key);
+        assert_eq!(
+            b"comment1=cooking%20MCs;userdata=;comment2=%20like%20a%20pound%20of%20bacon".to_vec(),
+            plaintext
+        );
+    }
+}
