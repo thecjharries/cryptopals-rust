@@ -14,10 +14,12 @@
 
 use rand::SeedableRng;
 use rand_pcg::Pcg64;
+use serde::__private::de;
 use urlencoding::encode_binary;
 
-use crate::aes::encrypt_aes_128_cbc;
+use crate::aes::{decrypt_aes_128_cbc, encrypt_aes_128_cbc};
 use crate::set2::generate_random_16_byte_key;
+use crate::util::fixed_xor;
 
 pub fn challenge_16_oracle(userdata: Vec<u8>, seed: u64) -> Vec<u8> {
     let mut rng = Pcg64::seed_from_u64(seed);
@@ -30,15 +32,25 @@ pub fn challenge_16_oracle(userdata: Vec<u8>, seed: u64) -> Vec<u8> {
 }
 
 pub fn inject_admin() -> Vec<u8> {
-    todo!()
+    let seed = 0;
+    let desired_length = ";admin=true".len();
+    let filler = vec!['A' as u8; desired_length];
+    let flipped = fixed_xor(b";admin=true".to_vec(), filler.clone());
+    let mut ciphertext = challenge_16_oracle(filler, seed);
+    let mut xor_input = vec![0u8; 16];
+    xor_input.extend(flipped);
+    xor_input.extend(vec![0u8; ciphertext.len() - xor_input.len()]);
+    ciphertext = fixed_xor(ciphertext, xor_input);
+    let mut rng = Pcg64::seed_from_u64(seed);
+    let key = generate_random_16_byte_key(&mut rng);
+    let iv = generate_random_16_byte_key(&mut rng);
+    decrypt_aes_128_cbc(ciphertext, iv, key)
 }
 
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::aes::decrypt_aes_128_cbc;
 
     #[test]
     fn challenge_16_oracle_provides_expected_wrapping() {
@@ -68,7 +80,9 @@ mod tests {
 
     #[test]
     fn challenge_16() {
-        let decrypted_result = String::from_utf8(inject_admin()).unwrap();
-        assert!(decrypted_result.contains("admin=true"));
+        let result = inject_admin();
+        let result_string = String::from_utf8_lossy(&result);
+        println!("{}", result_string);
+        assert!(result_string.contains(";admin=true;"));
     }
 }
