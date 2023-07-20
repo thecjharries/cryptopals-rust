@@ -29,6 +29,10 @@ pub fn challenge_16_oracle(userdata: Vec<u8>, seed: u64) -> Vec<u8> {
     encrypt_aes_128_cbc(plaintext, iv, key)
 }
 
+pub fn inject_admin() -> Vec<u8> {
+    todo!()
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
