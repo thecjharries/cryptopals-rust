@@ -12,14 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use rand::{RngCore, SeedableRng};
+use rand::SeedableRng;
 use rand_pcg::Pcg64;
-use urlencoding::encode;
+use urlencoding::encode_binary;
 
+use crate::aes::encrypt_aes_128_cbc;
 use crate::set2::generate_random_16_byte_key;
 
 pub fn challenge_16_oracle(userdata: Vec<u8>, seed: u64) -> Vec<u8> {
-    todo!()
+    let mut rng = Pcg64::seed_from_u64(seed);
+    let key = generate_random_16_byte_key(&mut rng);
+    let iv = generate_random_16_byte_key(&mut rng);
+    let mut plaintext = b"comment1=cooking%20MCs;userdata=".to_vec();
+    plaintext.extend(encode_binary(&userdata).as_bytes());
+    plaintext.extend(b";comment2=%20like%20a%20pound%20of%20bacon".to_vec());
+    encrypt_aes_128_cbc(plaintext, iv, key)
 }
 
 #[cfg(not(tarpaulin_include))]
