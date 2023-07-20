@@ -48,4 +48,17 @@ mod tests {
             plaintext
         );
     }
+
+    #[test]
+    fn challenge_16_oracle_encodes_special_characters() {
+        let mut rng = Pcg64::seed_from_u64(0);
+        let key = generate_random_16_byte_key(&mut rng);
+        let iv = generate_random_16_byte_key(&mut rng);
+        let ciphertext = challenge_16_oracle(b";admin=true".to_vec(), 0);
+        let plaintext = decrypt_aes_128_cbc(ciphertext, iv, key);
+        assert_eq!(
+            b"comment1=cooking%20MCs;userdata=%3Badmin%3Dtrue;comment2=%20like%20a%20pound%20of%20bacon".to_vec(),
+            plaintext
+        );
+    }
 }
