@@ -21,6 +21,8 @@ use serde_qs::to_string;
 use crate::aes::{encrypt_aes_128_ecb, AesEncryptionMethod};
 use crate::pkcs7::pkcs7_padding_add;
 
+pub mod challenge16;
+
 // Tarpaulin does not recognize the return as being covered
 #[cfg(not(tarpaulin_include))]
 fn generate_random_16_byte_key<R: RngCore>(rng: &mut R) -> Vec<u8> {
