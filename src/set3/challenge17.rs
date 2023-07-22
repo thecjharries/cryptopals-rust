@@ -109,5 +109,10 @@ mod tests {
             iv.clone(),
             generate_random_16_byte_key(&mut Pcg64::seed_from_u64(0))
         ));
+        assert!(!challenge_17_valid_decryption_padding(
+            generate_random_16_byte_key(&mut Pcg64::seed_from_u64(0)),
+            iv.clone(),
+            generate_random_16_byte_key(&mut Pcg64::seed_from_u64(0))
+        ));
     }
 }
