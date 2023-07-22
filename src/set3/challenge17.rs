@@ -38,6 +38,10 @@ fn get_plaintext<R: RngCore>(rng: &mut R) -> (String, Vec<u8>) {
     )
 }
 
+pub fn challenge_17_oracle() -> (Vec<u8>, Vec<u8>, String) {
+    todo!()
+}
+
 #[cfg(not(tarpaulin_include))]
 #[cfg(test)]
 mod tests {
