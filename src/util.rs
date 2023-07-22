@@ -14,6 +14,7 @@
 
 use base64::{engine::general_purpose, Engine as _};
 use hex;
+use rand::RngCore;
 use std::fs::read_to_string;
 
 pub fn hex_to_base64(hex: &str) -> String {
@@ -77,6 +78,14 @@ pub fn find_best_keysizes(ciphertext: Vec<u8>, min: usize, max: usize) -> Vec<us
         .map(|(keysize, _)| *keysize)
         .collect::<Vec<usize>>()[..3]
         .to_vec()
+}
+
+// Tarpaulin does not recognize the return as being covered
+#[cfg(not(tarpaulin_include))]
+pub fn generate_random_16_byte_key<R: RngCore>(rng: &mut R) -> Vec<u8> {
+    let mut key = vec![0; 16];
+    rng.fill_bytes(&mut key);
+    key
 }
 
 #[cfg(not(tarpaulin_include))]

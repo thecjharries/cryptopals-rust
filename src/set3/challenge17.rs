@@ -15,6 +15,10 @@
 use base64::{engine::general_purpose, Engine as _};
 use rand::seq::SliceRandom;
 use rand::RngCore;
+use rand::SeedableRng;
+use rand_pcg::Pcg64;
+
+use crate::util::generate_random_16_byte_key;
 
 fn get_plaintext<R: RngCore>(rng: &mut R) -> (String, Vec<u8>) {
     let plaintexts = vec![
@@ -38,7 +42,9 @@ fn get_plaintext<R: RngCore>(rng: &mut R) -> (String, Vec<u8>) {
     )
 }
 
-pub fn challenge_17_oracle() -> (Vec<u8>, Vec<u8>, String) {
+pub fn challenge_17_oracle(seed: u64) -> (Vec<u8>, Vec<u8>, String) {
+    let mut rng = Pcg64::seed_from_u64(seed);
+    let key = generate_random_16_byte_key(&mut rng);
     todo!()
 }
 
@@ -46,9 +52,6 @@ pub fn challenge_17_oracle() -> (Vec<u8>, Vec<u8>, String) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use rand::SeedableRng;
-    use rand_pcg::Pcg64;
 
     #[test]
     fn test_get_plaintext() {
