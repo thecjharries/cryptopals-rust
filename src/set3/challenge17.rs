@@ -18,7 +18,8 @@ use rand::RngCore;
 use rand::SeedableRng;
 use rand_pcg::Pcg64;
 
-use crate::aes::encrypt_aes_128_cbc;
+use crate::aes::decrypt_aes_128_cbc;
+use crate::aes::{encrypt_aes_128_cbc, encrypt_aes_128_ecb};
 use crate::util::generate_random_16_byte_key;
 
 fn get_plaintext<R: RngCore>(rng: &mut R) -> (String, Vec<u8>) {
@@ -50,6 +51,14 @@ pub fn challenge_17_oracle(seed: u64) -> (Vec<u8>, Vec<u8>, String) {
     let iv = generate_random_16_byte_key(&mut rng);
     let ciphertext = encrypt_aes_128_cbc(plaintext_decoded, iv.clone(), key);
     (ciphertext, iv, plaintext)
+}
+
+pub fn challenge_17_valid_decryption_padding(
+    ciphertext: Vec<u8>,
+    iv: Vec<u8>,
+    key: Vec<u8>,
+) -> bool {
+    decrypt_aes_128_cbc(ciphertext, iv, key).is_ok()
 }
 
 #[cfg(not(tarpaulin_include))]
@@ -90,5 +99,15 @@ mod tests {
             "MDAwMDAwTm93IHRoYXQgdGhlIHBhcnR5IGlzIGp1bXBpbmc=".to_string(),
             plaintext
         );
+    }
+
+    #[test]
+    fn challenge_17_valid_decryption_padding_checks_padding() {
+        let (ciphertext, iv, _) = challenge_17_oracle(0);
+        assert!(challenge_17_valid_decryption_padding(
+            ciphertext.clone(),
+            iv.clone(),
+            generate_random_16_byte_key(&mut Pcg64::seed_from_u64(0))
+        ));
     }
 }
