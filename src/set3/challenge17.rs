@@ -22,6 +22,8 @@ use crate::aes::decrypt_aes_128_cbc;
 use crate::aes::{encrypt_aes_128_cbc, encrypt_aes_128_ecb};
 use crate::util::generate_random_16_byte_key;
 
+// Tarpaulin doesn't recognize the unwrap return
+#[cfg(not(tarpaulin_include))]
 fn get_plaintext<R: RngCore>(rng: &mut R) -> (String, Vec<u8>) {
     let plaintexts = vec![
         "MDAwMDAwTm93IHRoYXQgdGhlIHBhcnR5IGlzIGp1bXBpbmc=",

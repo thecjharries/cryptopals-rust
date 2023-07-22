@@ -80,9 +80,11 @@ pub fn find_best_keysizes(ciphertext: Vec<u8>, min: usize, max: usize) -> Vec<us
         .to_vec()
 }
 
-// Tarpaulin does not recognize the return as being covered
 #[cfg(not(tarpaulin_include))]
 pub fn generate_random_16_byte_key<R: RngCore>(rng: &mut R) -> Vec<u8> {
+    // Tarpaulin does not recognize the return coverage
+    // If this comment is outside the fnc, Tarpaulin thinks
+    // the comment is an uncovered line
     let mut key = vec![0; 16];
     rng.fill_bytes(&mut key);
     key
