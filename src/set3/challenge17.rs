@@ -57,6 +57,8 @@ pub fn challenge_17_oracle(seed: u64) -> (Vec<u8>, Vec<u8>, String) {
 mod tests {
     use super::*;
 
+    use crate::aes::decrypt_aes_128_cbc;
+
     #[test]
     fn test_get_plaintext() {
         let mut rng = Pcg64::seed_from_u64(0);
@@ -90,5 +92,13 @@ mod tests {
             "MDAwMDAwTm93IHRoYXQgdGhlIHBhcnR5IGlzIGp1bXBpbmc=".to_string(),
             plaintext
         );
+    }
+
+    #[test]
+    fn challenge_17_oracle_decryption_has_padding_errors() {
+        let (ciphertext, iv, _) = challenge_17_oracle(0);
+        let key = generate_random_16_byte_key(&mut Pcg64::seed_from_u64(0));
+        let plaintext = decrypt_aes_128_cbc(ciphertext, iv, key);
+        assert!(plaintext.is_err());
     }
 }
