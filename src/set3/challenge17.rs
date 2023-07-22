@@ -11,17 +11,3 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-pub mod aes;
-pub mod pkcs7;
-pub mod set1;
-pub mod set2;
-pub mod set3;
-pub mod text_score;
-pub mod util;
-
-#[cfg(not(tarpaulin_include))]
-#[cfg(test)]
-mod tests {
-    use super::*;
-}
