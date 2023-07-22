@@ -3,6 +3,7 @@ CARGO ?= cargo
 GH ?= gh
 GIT ?= git
 RM ?= rm
+XDG_OPEN ?= xdg-open
 
 # Get the current branch
 CURRENT_BRANCH := $(shell $(GIT) rev-parse --abbrev-ref HEAD)
