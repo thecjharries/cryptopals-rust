@@ -16,7 +16,7 @@ use aes::cipher::{generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyIn
 use aes::Aes128;
 use std::collections::HashSet;
 
-use crate::pkcs7::{pkcs7_padding_add, pkcs7_padding_remove};
+use crate::pkcs7::{pkcs7_padding_add, pkcs7_padding_validation};
 
 #[derive(Debug, PartialEq)]
 pub enum AesEncryptionMethod {
@@ -92,7 +92,11 @@ pub fn encrypt_aes_128_cbc(plaintext: Vec<u8>, iv: Vec<u8>, key: Vec<u8>) -> Vec
     ciphertext
 }
 
-pub fn decrypt_aes_128_cbc(ciphertext: Vec<u8>, iv: Vec<u8>, key: Vec<u8>) -> Vec<u8> {
+pub fn decrypt_aes_128_cbc(
+    ciphertext: Vec<u8>,
+    iv: Vec<u8>,
+    key: Vec<u8>,
+) -> Result<Vec<u8>, String> {
     let mut blocks = Vec::new();
     for block in ciphertext.chunks(16) {
         blocks.push(GenericArray::clone_from_slice(block));
@@ -110,7 +114,7 @@ pub fn decrypt_aes_128_cbc(ciphertext: Vec<u8>, iv: Vec<u8>, key: Vec<u8>) -> Ve
         decrypted.append(&mut decrypted_block.to_vec());
         previous_block = block;
     }
-    pkcs7_padding_remove(decrypted)
+    pkcs7_padding_validation(decrypted)
 }
 
 pub fn guess_was_aes_ecb_used(ciphertext: Vec<u8>) -> bool {
@@ -217,18 +221,16 @@ mod tests {
         let key = b"YELLOW SUBMARINE";
         let iv = b"\x00\x00\x00\x00\x00\x00\x00\x00\
                    \x00\x00\x00\x00\x00\x00\x00\x00";
-        let decrypted = String::from_utf8(decrypt_aes_128_cbc(
-            ciphertext.clone(),
-            iv.to_vec(),
-            key.to_vec(),
-        ))
+        let decrypted = String::from_utf8(
+            decrypt_aes_128_cbc(ciphertext.clone(), iv.to_vec(), key.to_vec()).unwrap(),
+        )
         .unwrap();
         for line in decrypted.lines() {
             println!("'{}'", line);
         }
         assert_eq!(
             plaintext.to_vec(),
-            decrypt_aes_128_cbc(ciphertext, iv.to_vec(), key.to_vec())
+            decrypt_aes_128_cbc(ciphertext, iv.to_vec(), key.to_vec()).unwrap()
         );
     }
 

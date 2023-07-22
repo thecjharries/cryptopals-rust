@@ -43,7 +43,7 @@ pub fn inject_admin() -> Vec<u8> {
     let mut rng = Pcg64::seed_from_u64(seed);
     let key = generate_random_16_byte_key(&mut rng);
     let iv = generate_random_16_byte_key(&mut rng);
-    decrypt_aes_128_cbc(ciphertext, iv, key)
+    decrypt_aes_128_cbc(ciphertext, iv, key).unwrap()
 }
 
 #[cfg(not(tarpaulin_include))]
@@ -60,7 +60,7 @@ mod tests {
         let plaintext = decrypt_aes_128_cbc(ciphertext, iv, key);
         assert_eq!(
             b"comment1=cooking%20MCs;userdata=;comment2=%20like%20a%20pound%20of%20bacon".to_vec(),
-            plaintext
+            plaintext.unwrap()
         );
     }
 
@@ -73,7 +73,7 @@ mod tests {
         let plaintext = decrypt_aes_128_cbc(ciphertext, iv, key);
         assert_eq!(
             b"comment1=cooking%20MCs;userdata=%3Badmin%3Dtrue;comment2=%20like%20a%20pound%20of%20bacon".to_vec(),
-            plaintext
+            plaintext.unwrap()
         );
     }
 

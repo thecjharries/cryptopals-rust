@@ -253,7 +253,7 @@ mod tests {
         let key = "YELLOW SUBMARINE".as_bytes().to_vec();
         let iv = vec![0; 16];
         let plaintext = crate::aes::decrypt_aes_128_cbc(ciphertext, iv, key);
-        let plaintext = String::from_utf8(plaintext).unwrap();
+        let plaintext = String::from_utf8(plaintext.unwrap()).unwrap();
         assert!(plaintext.starts_with("I'm back and I'm ringin' the bell"));
         assert!(plaintext.ends_with("Play that funky music \n"));
     }
