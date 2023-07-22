@@ -48,5 +48,34 @@ fn get_plaintext<R: RngCore>(rng: &mut R) -> Vec<u8> {
             .as_bytes()
             .to_vec(),
     ];
-    todo!()
+    let choice = plaintexts.choose(rng).unwrap();
+    (
+        choice.to_string(),
+        general_purpose::STANDARD
+            .decode(choice.as_bytes().to_vec())
+            .unwrap(),
+    )
+}
+
+#[cfg(not(tarpaulin_include))]
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use rand::SeedableRng;
+    use rand_pcg::Pcg64;
+
+    #[test]
+    fn test_get_plaintext() {
+        let mut rng = Pcg64::seed_from_u64(0);
+        let (plaintext, plaintext_decoded) = get_plaintext(&mut rng);
+        assert_eq!(plaintext, "MDAwMDA4b2xsaW4nIGluIG15IGZpdmUgcG9pbnQgb2g=");
+        assert_eq!(
+            vec![
+                48, 48, 48, 48, 48, 56, 111, 108, 108, 105, 110, 39, 32, 105, 110, 32, 109, 121,
+                32, 102, 105, 118, 101, 32, 112, 111, 105, 110, 116, 32, 111, 104
+            ],
+            plaintext_decoded
+        )
+    }
 }
