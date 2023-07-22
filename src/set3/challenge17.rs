@@ -18,6 +18,7 @@ use rand::RngCore;
 use rand::SeedableRng;
 use rand_pcg::Pcg64;
 
+use crate::aes::encrypt_aes_128_cbc;
 use crate::util::generate_random_16_byte_key;
 
 fn get_plaintext<R: RngCore>(rng: &mut R) -> (String, Vec<u8>) {
@@ -45,7 +46,10 @@ fn get_plaintext<R: RngCore>(rng: &mut R) -> (String, Vec<u8>) {
 pub fn challenge_17_oracle(seed: u64) -> (Vec<u8>, Vec<u8>, String) {
     let mut rng = Pcg64::seed_from_u64(seed);
     let key = generate_random_16_byte_key(&mut rng);
-    todo!()
+    let (plaintext, plaintext_decoded) = get_plaintext(&mut rng);
+    let iv = generate_random_16_byte_key(&mut rng);
+    let ciphertext = encrypt_aes_128_cbc(plaintext_decoded, iv.clone(), key);
+    (ciphertext, iv, plaintext)
 }
 
 #[cfg(not(tarpaulin_include))]
