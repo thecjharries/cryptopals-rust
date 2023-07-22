@@ -66,4 +66,25 @@ mod tests {
             plaintext_decoded
         )
     }
+
+    #[test]
+    fn challenge_17_oracle_encrypts_and_returns_proper() {
+        let (ciphertext, iv, plaintext) = challenge_17_oracle(0);
+        assert_eq!(
+            vec![
+                167, 45, 21, 252, 25, 73, 200, 132, 184, 198, 144, 157, 18, 35, 123, 15, 208, 168,
+                100, 95, 254, 57, 76, 61, 49, 42, 93, 39, 80, 132, 34, 29, 148, 74, 242, 41, 81,
+                17, 32, 141, 177, 43, 190, 251, 140, 42, 180, 4
+            ],
+            ciphertext
+        );
+        assert_eq!(
+            vec![218, 167, 25, 176, 226, 30, 247, 9, 94, 26, 140, 200, 50, 123, 51, 219],
+            iv
+        );
+        assert_eq!(
+            "MDAwMDAwTm93IHRoYXQgdGhlIHBhcnR5IGlzIGp1bXBpbmc=".to_string(),
+            plaintext
+        );
+    }
 }
