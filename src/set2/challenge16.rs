@@ -14,7 +14,6 @@
 
 use rand::SeedableRng;
 use rand_pcg::Pcg64;
-use serde::__private::de;
 use urlencoding::encode_binary;
 
 use crate::aes::{decrypt_aes_128_cbc, encrypt_aes_128_cbc};

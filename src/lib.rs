@@ -19,9 +19,3 @@ pub mod set2;
 pub mod set3;
 pub mod text_score;
 pub mod util;
-
-#[cfg(not(tarpaulin_include))]
-#[cfg(test)]
-mod tests {
-    use super::*;
-}
